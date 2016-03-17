@@ -2,12 +2,21 @@
   "Display a text": "Afficher un texte",
   "Clear the console": "Effacer le terminal",
   "Change username": "Changer le nom d'utilisateur",
+  "Set a variable's value": "Régler la valeur d'une variable",
+  "Try to solve saves problems": "Tenter de régler les problèmes de sauvegarde",
 
   "command not found : ${cmd}": "commande non trouvée : ${cmd}",
   "A bug has been detected. Would you like to report it ?\n\nDetails :\n${err}\n\n${vars}": "Un bug a été détecté. Voulez-vous le reporter ?\n\nDétails :\n${err}\n\n${vars}",
   "Bug has been reported. Thank you !": "Le bug a été reporté. Merci !",
   "Failed to report bug to server ;(": "Le report du bug a échoué ;(",
   "bad syntax for command `${cmd}` : ${err}": "mauvaise syntaxe pour la commande `${cmd}` : ${err}",
+  "Your browser doesn't support localStorage feature. Your will not be able to save your game.\nTo save your progression, please use a newer browser or update this one.": "Votre navigateur ne supporte pas la fonctionnalité localStorage. Vous n'allez pas pouvoir sauvegarder.\nPour sauvegarder votre progression, utilisez un navigateur plus récent ou mettez à jour celui-ci.",
+  "localStorage test has failed. You will perhaps not be able to save your game.": "Le test localStorage a échoué. Vous n'allez peut-être pas pouvoir sauvegarder.",
+  "Failed to save game. Please try again. If that doesn't work, type `force-save` in the terminal and press Return.": "La sauvegarde a échouée. Veuillez réessayer. Si le problème subsiste, tapez `force-save` dans le terminal et appuyez sur Entrée",
+  "You can't access this mysterious command.": "Vous n'avez pas accès à cette commande mystérieuse.",
+  "Failed to load game. Please refresh the page.": "Impossible de charger le jeu. Veuillez rafraîchir la page.",
+  "Game is corrupted. This can be caused by a bad server's response. Please try later.": "Le jeu est corrompu. Cela peut être causé par une mauvaise réponse du serveur. Veuillez réessayer plus tard.",
+  "Received data are not valid. Please try later.\n\nDetails :\n${err}": "Les données reçues ne sont pas valides. Veuillez réessayer plus tard.\n\nDétails :\n${err}",
 
   "Missing argument \"${name}\"": "Il manque l'argument \"${name}\"",
   "Missing argument -${short}|--${long}": "L'argument -${short}|--${long} est manquant",
@@ -15,5 +24,7 @@
   "Missing argument -${long}": "L'argument -${long} est manquant",
   "Command seems to not be valid...": "La commande semble ne pas être valide...",
 
-  "New name": "Nouveau nom"
+  "New name": "Nouveau nom",
+  "Variable's name": "Nom de la variable",
+  "Variable's value": "Valeur de la variable"
 }

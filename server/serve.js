@@ -11,7 +11,7 @@ function asPlain(value) {
   if(typeof value === 'string' || value instanceof Buffer)
     return value;
   else if(typeof value === 'number')
-    return number.toString();
+    return value.toString();
   else if(typeof value === 'object' && value)
     return JSON.stringify(value);
   else if(value === null)
@@ -137,8 +137,7 @@ var server = http.createServer(serverCallback = function(req, res) {
                   content = asPlain(content);
 
                   res.writeHead(options.code || 200, {
-                    'Content-Type'  : mime || config.runMimeType || serve['mime-types']['.default'] || 'text/plain',
-                    'Content-Length': content.length
+                    'Content-Type'  : mime || config.runMimeType || serve['mime-types']['.default'] || 'text/plain'
                   });
                 }
               }
@@ -151,8 +150,7 @@ var server = http.createServer(serverCallback = function(req, res) {
           );
         } else {
           res.writeHead(200, {
-            'Content-Type': serve['mime-types'][ext] || serve['mime-types']['.default'] || 'text/plain',
-            'Content-Length': (content = content.toString(config.encoding)).length
+            'Content-Type': serve['mime-types'][ext] || serve['mime-types']['.default'] || 'text/plain'
           });
           res.end(content);
 

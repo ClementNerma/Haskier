@@ -1,0 +1,16 @@
+
+function recurse(dir) {
+  var entity = {}, files = fs.readdirSync(dir), ddir;
+
+  for(var i = 0; i < files.length; i++) {
+    if(!fs.lstatSync(ddir = dir + path.sep + files[i]).isFile())
+      entity[files[i]] = recurse(ddir);
+    else
+      entity[files[i]] = fs.readFileSync(ddir, 'utf-8');
+  }
+
+  return entity;
+}
+
+try      { resolve(recurse('game')); }
+catch(e) { resolve('An error was encountered.', {code: 500}); console.error(e.message); }
