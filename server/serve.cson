@@ -1,0 +1,62 @@
+"errors-code":
+    403: 'Forbidden'
+    404: 'Not Found'
+    500: 'Internal Server Error'
+
+'mime-types':
+    html: 'text/html'
+    htm : 'text/html'
+    css : 'text/css'
+    xml : 'text/xml'
+    txt : 'text/plain'
+    csv : 'text/csv'
+
+    js  : 'application/javascript'
+    zip : 'application/zip'
+    json: 'application/json'
+    pdf : 'application/pdf'
+    ogg : 'application/ogg'
+    sfw : 'application/x-shockwave-flash'
+
+    gif : 'image/gif'
+    jpg : 'image/jpeg'
+    jpeg: 'image/jpeg'
+    png : 'image/png'
+    tiff: 'image/tiff'
+    svg : 'image/svg+xml'
+
+    mp3 : 'audio/mpeg'
+    wav : 'audio/wav'
+    wma : 'audio/x-ms-wma'
+
+    mp4 : 'video/mp4'
+    wmv : 'video/x-ms-wmv'
+    avi : 'video/x-msvideo'
+    flv : 'video/x-flv'
+    webm: 'video/webm'
+
+    xls : 'application/vnd.ms-excel'
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ppt : 'application/vnd.ms-powerpoint'
+    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    doc : 'application/msword'
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    xul : 'application/vnd.mozilla.xul+xml'
+
+    odt : 'application/vnd.oasis.opendocument.text'
+    ods : 'application/vnd.oasis.opendocument.spreadsheet'
+    odp : 'application/vnd.oasis.opendocument.presentation'
+    odg : 'application/vnd.oasis.opendocument.graphics'
+    odc : 'application/vnd.oasis.opendocument.chart'
+    odf : 'application/vnd.oasis.opendocument.formula'
+    odb : 'application/vnd.oasis.opendocument.database'
+    odi : 'application/vnd.oasis.opendocument.image'
+    odm : 'application/vnd.oasis.opendocument.text-master'
+
+    ott : 'application/vnd.oasis.opendocument.text-template'
+    ots : 'application/vnd.oasis.opendocument.spreadsheet-template'
+    otp : 'application/vnd.oasis.opendocument.spreadsheet-template'
+    otg : 'application/vnd.oasis.opendocument.graphics-template'
+
+    '.binary': 'application/octet-stream'
+    '.default': 'text/plain'

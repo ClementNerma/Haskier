@@ -1,0 +1,13 @@
+
+var fs = require('fs'), path = require('path');
+
+if(!GET.hasOwnProperty('lang'))
+  resolve('Missing `lang` field', {code: 400});
+
+var file = path.join('com', 'translations', normalize(GET.lang) + '.json');
+
+try      { if(!fs.lstatSync(file).isFile()) return resolve('No translation was found for this package'); }
+catch(e) { resolve('Failed to check translation package', {code: 500}); console.log(e.message); }
+
+try      { resolve(fs.readFileSync(file)); }
+catch(e) { resolve('Failed to open translation package', {code: 500}); }

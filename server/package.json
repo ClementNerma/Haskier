@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "cson": "latest",
+    "isbinaryfile": "latest"
+  },
+  "author": "Clément Nerma",
+  "license": "CC-BY-NC-ND-4.0"
+}

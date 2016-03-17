@@ -1,0 +1,26 @@
+
+if(IP) {
+  var date = (new Date()).getTime();
+
+  if(!gdata[IP])
+    gdata[IP] = 0;
+
+  if(gdata[IP] > date - 10 * 1000)
+    return resolve('You can report a bug only one time per ten seconds', {code: 403});
+
+  gdata[IP] = date;
+}
+
+if(GET.message && GET.time) {
+  if(GET.message.length > 10 * 1024)
+    resolve('Message is too long (maximum of 10 Kb)', {code: 400});
+
+  if(Number.isNaN(parseInt(GET.time)))
+    resolve('Invalid timestamp', {code: 400});
+  else {
+    try      { fs.appendFileSync(path.join('.logs', 'bug-reports.log'), GET.time + ' ' + GET.message.split('\n').join(' / '), 'utf-8');
+               resolve('Bug was reported. Thanks !'); }
+    catch(e) { resolve('Failed to report bug (internal server error)', {code: 500}); }
+  }
+} else
+  resolve('Bad request : Missing `time` or `message` parameters', {code: 400});

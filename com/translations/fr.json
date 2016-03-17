@@ -1,0 +1,19 @@
+{
+  "Display a text": "Afficher un texte",
+  "Clear the console": "Effacer le terminal",
+  "Change username": "Changer le nom d'utilisateur",
+
+  "command not found : ${cmd}": "commande non trouvée : ${cmd}",
+  "A bug has been detected. Would you like to report it ?\n\nDetails :\n${err}\n\n${vars}": "Un bug a été détecté. Voulez-vous le reporter ?\n\nDétails :\n${err}\n\n${vars}",
+  "Bug has been reported. Thank you !": "Le bug a été reporté. Merci !",
+  "Failed to report bug to server ;(": "Le report du bug a échoué ;(",
+  "bad syntax for command `${cmd}` : ${err}": "mauvaise syntaxe pour la commande `${cmd}` : ${err}",
+
+  "Missing argument \"${name}\"": "Il manque l'argument \"${name}\"",
+  "Missing argument -${short}|--${long}": "L'argument -${short}|--${long} est manquant",
+  "Missing argument -${short}": "L'argument -${short} est manquant",
+  "Missing argument -${long}": "L'argument -${long} est manquant",
+  "Command seems to not be valid...": "La commande semble ne pas être valide...",
+
+  "New name": "Nouveau nom"
+}

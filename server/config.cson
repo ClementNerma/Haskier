@@ -1,0 +1,8 @@
+#404: "404.html"
+port              : 1437
+encoding          : "utf-8"
+directory         : ".."
+allowServerAccess : false
+allowRunFiles     : true
+runMimeType       : "text/html"
+runEncoding       : "utf-8"

@@ -1,0 +1,46 @@
+
+body {
+  z-index: -1;
+  font-family: Open Sans, Roboto, Ubuntu, sans-serif;
+}
+
+#terminal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 17px;
+  overflow: auto;
+  z-index: 1;
+}
+
+#terminal .terminal-output, #terminal .cmd {
+    font-size: 1.2em !important;
+}
+
+#fullscreen_trigger {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  padding: 5px;
+  background-color: lightgray;
+  z-index: 2;
+}
+
+#fullscreen_trigger:hover {
+  cursor: pointer;
+}
+
+#infos {
+  position: absolute;
+  font-family: "Inconsolata";
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 16px;
+  border-top: 1px solid darkgrey;
+  color: white;
+  background-color: black;
+  z-index: 2;
+  padding: 2px;
+}
