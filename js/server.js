@@ -113,15 +113,19 @@ var Server = function() {
       d = d[path[i]];
 
       if(typeof d !== 'object') {
-      err = true;
-      break;
+        err = true;
+        break;
       }
     }
 
     i = path.length - 1;
 
-    if(typeof ({})[path[i]] !== 'undefined')
+    if(typeof ({})[path[i]] !== 'undefined') {
       path[i] = '___' + path[i];
+
+      if(write)
+        console.warn('Using a reserved JavaScript-name will make file or folder unable to use files table');
+    }
 
     if(err)
       return false;
@@ -159,7 +163,8 @@ var Server = function() {
     * @return {boolean}
     */
   this.fileExists = function(file) {
-    return !!_fs(file, 'string');
+    var ret = _fs(file, 'string');
+    return ret === '' ? true : ret;
   };
 
   /**
@@ -181,7 +186,9 @@ var Server = function() {
       return false;
 
     var ret = _fs(file, 'string', asPlain(content));
-    if(ret) { _table[normalize(file)].edited = (new Date()).getTime(); }
+    if(ret && _table[file = normalize(file)])
+      _table[file].edited = (new Date()).getTime();
+
     return ret;
   };
 
@@ -243,7 +250,14 @@ var Server = function() {
     var d = _fs(dir, 'object');
     if(!d) return false;
 
-    return Object.keys(d);
+    d = Object.keys(d);
+
+    for(var i = 0; i < d.length; i++) {
+      if(d[i].substr(0, 3) === '___' && typeof ({})[d[i].substr(3)] !== 'undefined')
+        d[i] = d[i].substr(3);
+    }
+
+    return d;
   };
 
   /**
@@ -356,17 +370,17 @@ var Server = function() {
     data   = clone(data);
 
     if(!somewhere) {
-    _table = data.table;
-    _files = data.files;
-    _chdir = data.chdir || '/';
-    sep  = data.sep   || '/';
+      _table = data.table;
+      _files = data.files;
+      _chdir = data.chdir || '/';
+      sep  = data.sep   || '/';
     } else {
-    if(somewhere === 'files')
-      _files = data;
-    else if(somewhere === 'table')
-      _table = data;
-    else if(somewhere === 'sep')
-      sep  = data;
+      if(somewhere === 'files')
+        _files = data;
+      else if(somewhere === 'table')
+        _table = data;
+      else if(somewhere === 'sep')
+        sep  = data;
     }
 
     data   = null; // Free memory
@@ -399,83 +413,111 @@ var Server = function() {
   /**
     * Perform a search on the server
     * @param {string} query Glob search
-    * @param {boolean} subDirectories Search into all sub-directories
+    * @param {array} [options]
     * @return {array}
     */
-  this.glob = function(query, subDirectories, showHidden, storage, _path, results, searchArgs) {
+  this.glob = function(query, options, storage, _path, results, searchArgs) {
+
+    /* === OPTIONS ===
+     * sub_folders
+     * exclude_files
+     * exclude_folders
+     * only_files
+     * only_folders
+     * names_list
+     * add_folders_slash
+     */
+
+    if(Array.isArray(options) || !options) {
+      options = options || [];
+      var f = {};
+
+      for(var i = 0; i < options.length; i++)
+        f[options[i]] = true;
+
+      options = f;
+    }
 
     // Query to Regexp
     function q2r(str) {
       return new RegExp('^' + str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&").replace(/\\\*/g, '(.*?)').replace(/\\\?/g, '(.)') + '$');
     }
 
-    var store    = storage || _files, i,
-      _path    = _path || '',
-      query    = normalize(query).split(sep),
-      begpath  = _path + (_path.length ? '/' : ''),
-      files, saw = [],
-      results  = results || [],
-      regex, match;
+    query = normalize(query).split(sep);
 
-      searchArgs = searchArgs || [];
+    var store      = storage || _files, i,
+        _path      = _path || '',
+        begpath    = _path + (_path.length ? '/' : ''),
+        files, saw = [],
+        results    = results || [],
+        regex, match, tmp;
+
+    searchArgs = searchArgs || [];
 
     if(query[0].indexOf('*') !== -1 || query[0].indexOf('?') !== -1) {
-    // query's part is a regex
-    files = Object.keys(store), regex = q2r(query[0]);
+      // query's part is a regex
+      files = Object.keys(store), regex = q2r(query[0]);
 
-    for(i = 0; i < files.length; i++) {
-      if(match = files[i].match(regex)) {
-      // if the regex match with the file's name
-      if(query.length > 1) {
-        // if there are some other parts
-        saw.push(files[i]);
+      for(i = 0; i < files.length; i++) {
+        if(match = files[i].match(regex)) {
+          // if the regex match with the file's name
+          if(query.length > 1) {
+            // if there are some other parts
+            saw.push(options.names_list ? begpath + files[i] + (tmp && options.add_folders_slash ? '/' : '') : files[i]);
 
-        if(!_table[begpath + files[i]] || (_table[begpath + files[i]] && _table[begpath + files[i]].hidden && showHidden) || (!_table[begpath + files[i]].hidden))
-        this.glob(query.slice(1).join(sep), subDirectories, showHidden, store[files[i]], begpath + files[i], results, searchArgs.concat(match.slice(1)));
-      } else {
-        // if that's the end of the query
-        if(!_table[begpath + files[i]] || (_table[begpath + files[i]] && _table[begpath + files[i]].hidden && showHidden) || (!_table[begpath + files[i]].hidden))
-        results.push({path: begpath + files[i], vars:searchArgs.concat(match.slice(1))});
+            if(!_table[begpath + files[i]] || (_table[begpath + files[i]] && _table[begpath + files[i]].hidden && options.show_hidden) || (!_table[begpath + files[i]].hidden))
+              this.glob(query.slice(1).join(sep), options, store[files[i]], begpath + files[i], results, searchArgs.concat(match.slice(1)));
+          } else {
+            // if that's the end of the query
+            if(!_table[begpath + files[i]] || (_table[begpath + files[i]] && _table[begpath + files[i]].hidden && options.show_hidden) || (!_table[begpath + files[i]].hidden))
+              if((tmp = this.dirExists(begpath + files[i]) && !options.only_files && !options.exclude_folders) || (this.fileExists(begpath + files[i]) && !options.only_folders && !options.exclude_files))
+                results.push(options.names_list ? begpath + files[i] + (tmp && options.add_folders_slash ? '/' : '') : {path: begpath + files[i] + (tmp && options.add_folders_slash ? '/' : ''), vars:searchArgs.concat(match.slice(1)), type: !tmp*1});
+          }
+        }
       }
-      }
-    }
     } else {
-    // query's part is a simple file name
-    if(store.hasOwnProperty(query[0])) {
-      // it exists !
-      if(query.length > 1) {
-      // if there are some other parts
-      if(typeof store[query[0]] === 'object') {
-        // that's a folder
-        saw.push(query[0]);
+      // query's part is a simple file name
+      if(store.hasOwnProperty(query[0])) {
+        // it exists !
+        if(query.length > 1) {
+          // if there are some other parts
+          if(typeof store[query[0]] === 'object') {
+            // that's a folder
+            saw.push(query[0]);
 
-        if(!_table[begpath + query[0]] || (_table[begpath + query[0]] && _table[begpath + query[0]].hidden && showHidden) || (!_table[begpath + query[0]].hidden))
-        this.glob(query.slice(1).join(sep), subDirectories, showHidden, store[query[0]], begpath + query[0], results, searchArgs);
-      } else {
-        // that's a file
-        if(!_table[begpath + query[0]] || (_table[begpath + query[0]] && _table[begpath + query[0]].hidden && showHidden) || (!_table[begpath + query[0]].hidden))
-        results.push({path: begpath + query[0], vars:searchArgs});
+            if(!_table[begpath + query[0]] || (_table[begpath + query[0]] && _table[begpath + query[0]].hidden && options.show_hidden) || (!_table[begpath + query[0]].hidden))
+              this.glob(query.slice(1).join(sep), options, store[query[0]], begpath + query[0], results, searchArgs);
+          } else {
+            // that's a file
+            if(!_table[begpath + query[0]] || (_table[begpath + query[0]] && _table[begpath + query[0]].hidden && options.show_hidden) || (!_table[begpath + query[0]].hidden))
+              if((tmp = this.dirExists(begpath + query[0]) && !options.only_files && !options.exclude_folders) || (this.fileExists(begpath + query[0]) && !options.only_folders && !options.exclude_files))
+                results.push(options.names_list ? begpath + query[0] + (tmp && options.add_folders_slash ? '/' : '') : {path: begpath + query[0] + (tmp && options.add_folders_slash ? '/' : ''), vars:searchArgs, type: !tmp*1});
+          }
+        } else {
+          // if that's the end of the query
+          if(!_table[begpath + query[0]] || (_table[begpath + query[0]] && _table[begpath + query[0]].hidden && options.show_hidden) || (!_table[begpath + query[0]].hidden))
+            if((tmp = this.dirExists(begpath + query[0]) && !options.only_files && !options.exclude_folders) || (this.fileExists(begpath + query[0]) && !options.only_folders && !options.exclude_files))
+              results.push(options.names_list ? begpath + query[0] + (tmp && options.add_folders_slash ? '/' : '') : {path: begpath + query[0] + (tmp && options.add_folders_slash ? '/' : ''), vars:searchArgs, type: !tmp*1});
+        }
       }
-      } else {
-      // if that's the end of the query
-      if(!_table[begpath + query[0]] || (_table[begpath + query[0]] && _table[begpath + query[0]].hidden && showHidden) || (!_table[begpath + query[0]].hidden))
-        results.push({path: begpath + query[0], vars:searchArgs});
+    }
+
+    if(options.sub_folders) {
+      if(!files) { files = Object.keys(store); }
+
+      for(i = 0; i < files.length; i++) {
+        if(typeof store[files[i]] === 'object' && saw.indexOf(files[i]) === -1)
+          if(!_table[begpath + files[i]] || (_table[begpath + files[i]] && _table[begpath + files[i]].hidden && options.show_hidden) || (!_table[begpath + files[i]].hidden))
+            this.glob(query.join(sep), options,store[files[i]], begpath + files[i], results, searchArgs);
       }
-    }
-    }
-
-    if(subDirectories) {
-    if(!files) { files = Object.keys(store); }
-
-    for(i = 0; i < files.length; i++) {
-      if(typeof store[files[i]] === 'object' && saw.indexOf(files[i]) === -1)
-      if(!_table[begpath + files[i]] || (_table[begpath + files[i]] && _table[begpath + files[i]].hidden && showHidden) || (!_table[begpath + files[i]].hidden))
-        this.glob(query.join(sep), subDirectories /* true */, showHidden, store[files[i]], begpath + files[i], results, searchArgs);
-    }
     }
 
     saw = storage = store = searchArgs = null; // free memory
     return results;
+  };
+
+  this.normalize = function(p) {
+    return normalize(p);
   };
 
   /* Make aliases */

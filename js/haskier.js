@@ -1,12 +1,12 @@
 'use strict';
 
-$('body > *').hide();
+var hidden = $('#terminal, #infos, #fullscreen_trigger').hide();
 
 /**
   * Start the game !
   */
 function go() {
-  $('body > *').show();
+  hidden.show();
 }
 
 /**
@@ -207,15 +207,44 @@ var server     = new Server(); // Server entity
 
 // Define #terminal as a terminal
 var term = $('#terminal').terminal(function(cmd, term) {
-  command(cmd);
+  // If there is a catch callback
+  if(catchCommand) {
+    // We store it in memory...
+    var callback = catchCommand;
+    // To delete it in the variable (this permit to remove some bugs)
+    catchCommand = null;
+    // If the callback does no return 'true'
+    if(callback(cmd) !== true)
+      // We recover the prompt
+      updatePrompt();
+  } else
+    // Else, we run the command
+    command(cmd);
 }, {
   greetings    : '',
   name         : 'haskier-terminal',
   prompt       : '$ ',
   tabcompletion: true,
-  completion   : function(term, cmd, callback) {
-    // TODO : Autocompletion for filenames !
-    callback(Object.keys(commands));
+  completion   : function(term, word, callback) {
+    // If there is a catch callback
+    if(catchCommand) {
+      // We don't have to autocomplete the input
+      callback([]);
+      // Stop the function
+      return ;
+    }
+
+    var cmd = term.get_command();
+
+    // If the command is a unique word
+    if(cmd === word)
+      // Then we autocomplete with command names
+      callback(Object.keys(commands));
+    else
+      // We autocomplete with filenames
+      // We add an asterisc, else search engine will think we want to find files with THIS filename
+      // The '*' means "all filenames whichs starts by what we've given"
+      callback(server.glob(word + '*', ['names_list', 'add_folders_slash']));
   },
   clear        : true
 });
@@ -290,8 +319,19 @@ if(!is_save) {
   updatePrompt();
 }
 
+// Define global HSF scope
+var scope = {
+  display: function(text) {
+    display(text);
+  },
+
+  clear: function() {
+    term.clear();
+  }
+};
+
 // Define some callbacks
-var afterCommand, beforeCommand;
+var afterCommand, catchCommand;
 // Load game
 var serverGame, game;
 
@@ -300,7 +340,7 @@ $.ajax({
   dataType: 'json',
   success: function(data) {
     serverGame = data;
-    game = HSF.parse(data['scenario.hsf']);
+    game = HSF.parse(data['scenario.hsf'], true);
 
     if(typeof game === 'string')
       alert(tr('Received data are not valid. Please try later.\n\nDetails :\n${err}', [game]));
@@ -310,4 +350,4 @@ $.ajax({
   error: function(err) {
     alert(tr('Failed to load game. Please refresh the page.'));
   }
-})
+});

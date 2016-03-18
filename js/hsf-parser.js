@@ -5,9 +5,11 @@ var HSF = (new (function() {
   /**
     * Parse a HSF code
     * @param {string} code
+    * @param {object} [makeScriptScope] Returns an instance of HSF.Script with this scope (default: false)
     * @return {Array|Error}
     */
-  this.parse = function(code) {
+
+  this.parse = function(code, makeScriptScope) {
     var out = [];
     code = code.split('\n');
 
@@ -18,42 +20,161 @@ var HSF = (new (function() {
       }
     }
 
-    return out;
+    return makeScriptScope ? new this.Script(out, makeScriptScope || {}) : out;
   };
 
   /**
-    * Run a code
+    * Script constructor
     * @param {string|Array} code Plain or parsed code
-    * @return {boolean|Error}
+    * @param {object} [scope]
+    * @constructor
     */
-  this.run = function(code) {
+  this.Script = function(code, scope) {
+
     if(typeof code === 'string') {
-      var ret = this.parse(code);
+      code = this.parse(code);
 
       if(!Array.isArray(code))
-        return code;
+        this.error = code;
     }
 
-    for(var i = 0; i < code.length; i++) {
-      try      { code[i].eval(this.scope); }
-      catch(e) { return {line: i + 1, view: code[i], e: e}; }
-    }
+    /**
+      * HSF scope
+      * @type {object}
+      */
+    var scope = typeof scope === 'object' && scope && !Array.isArray(scope) ? scope : {};
 
-    return false;
+    var i = -1;
+
+    /**
+      * Run the next instruction
+      * @return {void|object}
+      */
+    this.next = function() {
+        i++; // Next line
+
+        if(i >= code.length) // Script has been entirely runned
+          return ;
+
+        try      { code[i].eval(scope); }
+        catch(e) { return {line: i + 1, view: code[i], error: e}; }
+    };
+
+    /**
+      * Run all the script
+      * @return {void|object}
+      */
+    this.run = function() {
+      var ret;
+
+      while(i < code.length) {
+        ret = this.next();
+
+        if(ret)
+          return ret;
+      }
+    };
+
+    /**
+      * Ignore the next instruction
+      */
+    this.pass = function() {
+      i++;
+    };
+
+    /**
+      * Restart the script execution's
+      */
+    this.restart = function() {
+      this.goLine(0);
+      this.run();
+    };
+
+    /**
+      * Go the first step
+      */
+    this.beginning = function() {
+      this.goLine(0);
+    };
+
+    /**
+      * Get the current step
+      * @return {void|object}
+      */
+    this.current = function() {
+      return code[i];
+    };
+
+    /**
+      * Get the current step's number
+      * @return {number}
+      */
+    this.currentStep = function() {
+      return i;
+    };
+
+    /**
+      * Change current step
+      * @param {number} step
+      * @return {boolean}
+      */
+    this.goLine = function(step) {
+      if(step >= code.length)
+        return false;
+
+      i = step;
+      return true;
+    };
+
+    /**
+      * Get a variable
+      * @param {string} name
+      * @return {*}
+      */
+    this.getVar = function(name) {
+      return scope[name];
+    };
+
+    /**
+      * Set a variable
+      * @param {string} name
+      * @param {*} value
+      */
+    this.setVar = function(name, value) {
+      scope[name] = value;
+    };
+
+    /**
+      * Delete a variable
+      * @param {string} name
+      * @return {boolean}
+      */
+    this.delVar = function(name) {
+      return (delete scope[name]);
+    };
+
+    /**
+      * Get the entire scope
+      * @return {object}
+      */
+    this.getScope = function() {
+      return scope;
+    };
   };
 
   /**
-    * HSF scope
-    * @type {object}
+    * Run a HSF code
+    * @param {string} code
+    * @param {object} [scope] HSF Scope
+    * @return {void|Error}
     */
-  this.scope = {
-    print: function(text) {
-      display(text);
-    },
+  this.run = function(code, scope) {
+    var script = this.parse(code, scope || true);
 
-    clear: function() {
-      term.clear();
-    }
+    if(script.error)
+      return new Error(script.error);
+
+    return script.run();
   };
 
 })());
