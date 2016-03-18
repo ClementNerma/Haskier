@@ -98,7 +98,7 @@ function format(text) {
       }
 
       // Return the content '[[<style>;<foreground>;<background>]<content>]';
-      return '[[' + guib + ';' + foreground + ';' + background + ']' + jQuery.terminal.espace_brackets(content) + ']';
+      return '[[' + guib + ';' + foreground + ';' + background + ']' + jQuery.terminal.escape_brackets(content) + ']';
     });
 }
 
@@ -114,9 +114,6 @@ var displayingIndex;         // Displaying char index
   */
 function display(message, humanLike) {
   // If the message is empty
-  if(!message || !message.length)
-    return ;
-
   var split = message.split(/\r|\n|\r\n/);
 
   // If the message is composed of more than one line, treat it as multiple messages
@@ -126,7 +123,7 @@ function display(message, humanLike) {
     for(var i = 0; i < split.length; i++)
       // Display it as a unique message
       // If that's the last line, use the callback
-      display(split[i], i === split.length - 1 ? humanLike : function(){});
+      display(split[i], humanLike ? (i === split.length - 1 ? humanLike : function(){}) : undefined);
 
     // Stop the function
     return ;
@@ -139,6 +136,14 @@ function display(message, humanLike) {
   if(!displaying)
     // ... treat the queue
     treatDisplayQueue();
+}
+
+/**
+  * Display an error into the terminal
+  * @param {string} message
+  */
+function display_error(message) {
+  return display('${red:' +  message + '}');
 }
 
 /**
@@ -162,7 +167,7 @@ function treatDisplayQueue() {
   // So it have to be displayed in one time
   if(!callback) {
     // Display the text (after variables and color formatting)
-    term.echo(format(msg));
+    term.echo(format(msg) || ' ');
     // Function is not displaying a message anymore
     displaying = false;
     // Stop the function
@@ -191,7 +196,10 @@ function treatDisplay() {
     return report_bug('treatDisplay() has been called but there is no message to display');
 
   // We'll display another character
-  displayingIndex++;
+  // This condition permit to not increase index if the message is empty
+  // ... So that permit to remove some bug
+  if(displaying.length)
+    displayingIndex++;
 
   // If the displaying index is not valid -> report a bug
   if(displayingIndex > displaying.length)

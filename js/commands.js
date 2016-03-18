@@ -25,6 +25,7 @@ var commands = {
       {
         _       : 'name',
         legend  : tr('New name'),
+        regex   : /^([a-zA-Z0-9_]+)$/,
         required: true
       }
     ],
@@ -61,15 +62,278 @@ var commands = {
     }
   },
 
+  ui: {
+    legend   : tr('Set the terminal\'s appearance'),
+    arguments: [
+      {
+        long    : 'font',
+        legend  : tr('Font\'s name'),
+        required: false
+      },
+      {
+        long    : 'hide-infobar',
+        legend  : tr('Hide the information bar'),
+        regex   : /^true|false$/,
+        required: false
+      }
+    ],
+    callback : function(font, hideInfobar) {
+      if(font) {
+        if(font === 'reset') {
+          delete save.data.font;
+          display(tr('Font has been reset'));
+        } else {
+          var old = save.data.font || '${italic:<nothing>}';
+          save.data.font = font;
+          display(tr('Font has been changed from "${old}" to "${new}"', [old, font]));
+        }
+      }
+
+      if(hideInfobar)
+        display(tr('The information bar has been ' + ((save.data.hideInfobar = (hideInfobar === 'true' || hideInfobar === true)) ? 'hidden' : 'unhidden')))
+
+      updateUI();
+    }
+  },
+
+  help: {
+    legend   : tr('Display help on commands'),
+    arguments: [
+      {
+        _       : 'command',
+        legend  : tr('Command\'s name'),
+        required: false
+      }
+    ],
+    callback : function(command) {
+      if(command) {
+        if(!commands.hasOwnProperty(command))
+          return display('${red:' + tr('Command "${cmd}" was not found', [command]) + '}');
+
+        var syn  = '',
+            args = commands[command].arguments,
+            desc = '',
+            arg, req, asyn /* Argument synopsis */, adesc /* Argument description */;
+
+        for(var i = 0; i < args.length; i++) {
+          arg = args[i]; req = args[i].required; asyn = req ? '' : '[';
+
+          /* Synopsis treatment */
+          if(arg.short && arg.long)
+            asyn += '-' + arg.short + '${bold:|}--' + arg.long;
+          else if(arg.short)
+            asyn += '-' + arg.short;
+          else if(arg.long)
+            asyn += '--' + arg.long;
+          else
+            asyn += '${italic:<' + arg._ + '>}';
+
+          //if((arg.short || arg.long) && (arg.check || arg.regex || !arg.noValue))
+            //asyn += ' = ...';
+
+          syn += ' ' + asyn + (req ? '' : ']');
+
+          /* Description treatment */
+          desc += '\n\n\t${bold:' +
+            (arg.short && arg.long ? '-' + arg.short + '|--' + arg.long :
+              arg.short ? '-' + arg.short :
+                arg.long ? '--' + arg.long :
+                  '<' + arg._ + '>') +
+                    (!req ? ' [Optionnal]' : '') +
+                    '}\n\t\t' + arg.legend;
+        }
+
+        display('${bold:Description}\n${bold:===========}\n\n\t' + commands[command].legend + '\n\n${bold:Synopsis}\n${bold:========}\n\n\t' + command + syn + '\n\n' + (desc ? '${bold:Parameters}\n${bold:==========}' + desc : '\n${italic:This command does not accept any parameter.}'));
+        return ;
+      }
+
+      // Display help on all commands
+      var cmds = Object.keys(commands), long = 0, cmd;
+
+      for(var i = 0; i < cmds.length; i++)
+        long = Math.max(cmds[i].length, long);
+
+      for(i = 0; i < cmds.length; i++) {
+        cmd = commands[cmds[i]];
+        display('${blue:' + cmds[i] + '}' + ' '.repeat(long - cmds[i].length) + ' ' + cmd.legend);
+      }
+    }
+  },
+
+  write: {
+    legend   : tr('Write a file'),
+    arguments: [
+      {
+        _       : 'file',
+        legend  : tr('Filename'),
+        required: true
+      },
+      {
+        _      : 'content',
+        legend  : tr('Content to write'),
+        required: true
+      }
+    ],
+    callback : function(file, content) {
+      if(!server.writeFile(file, content))
+        display_error('Failed to write file');
+    }
+  },
+
+  read: {
+    legend   : tr('Read a file'),
+    arguments: [
+      {
+        _       : 'file',
+        legend  : tr('Filename'),
+        required: true
+      },
+      {
+        long    : 'json',
+        legend  : tr('Read the file as JSON object')
+      }
+    ],
+    callback : function(file, json) {
+      var content = server[json ? 'readJSON' : 'readFile'](file);
+
+      if(typeof content !== 'string')
+        display_error('Failed to read file' + (json ? ' as json' : ''));
+      else
+        display(content);
+    }
+  },
+
+  rm: {
+    legend   : tr('Remove a file or a folder'),
+    arguments: [
+      {
+        _       : 'path',
+        legend  : tr('Path'),
+        required: true
+      },
+      {
+        short   : 'f',
+        long    : 'folder',
+        legend  : tr('Allow folder removing')
+      },
+      {
+        short   : 'r',
+        long    : 'recursive',
+        legend  : tr('Remove folder and all sub-folders')
+      }
+    ],
+    callback: function(path, folder, recurse) {
+      var res, nemp /* Not Empty */;
+
+      if(!server.exists(path))
+        return display_error(tr('File or folder not found'));
+
+      if(server.dirExists(path) && !folder)
+        return display_error(tr('This is a folder. To remove it, use -f option.'));
+
+      if(server.fileExists(path) && folder)
+        return display_error(tr('This is a file. To remove it, remove the -f option.'));
+
+      if(server.dirExists(path)) {
+        if(nemp = server.ls(path).length && !recurse)
+          return display_error(tr('Folder is not empty. To remove it, use -r option.'));
+
+        res = server[nemp ? 'removeTree' : 'removeDir'](path);
+
+        if(res)
+          display_error(tr(res));
+      } else {
+        res = server.removeFile(path);
+
+        if(res)
+          display_error(tr('Failed to remove file'));
+      }
+    }
+  },
+
+  cd: {
+    legend   : tr('Change current directory'),
+    arguments: [
+      {
+        _       : 'path',
+        legend  : tr('Folder\'s path')
+      }
+    ],
+    callback : function(path) {
+      if(path) {
+        if(server.chdir(path))
+          updatePrompt();
+        else
+          display_error(tr('Directory not found'));
+      } else
+        display(server.chdir());
+    }
+  },
+
+  ls: {
+    legend   : tr('List the folder\'s content'),
+    arguments: [
+      {
+        _       : 'path',
+        legend  : tr('Folder\'s path. If omitted, read the server\'s root.')
+      },
+      {
+        short   : 'd',
+        long    : 'details',
+        legend  : tr('Display details for each file and folder')
+      },
+      {
+        short   : 'h',
+        long    : 'hidden',
+        legend  : 'Show hidden files and folders'
+      }
+    ],
+    callback : function(path, details, hidden) {
+      var list = server.ls(path, !!hidden);
+
+      if(!list)
+        return tr('Directory not found');
+
+      if(!details) {
+        display(list.join('\n'));
+        return ;
+      }
+
+      var maxLength = 0;
+
+      for(var i = 0; i < list.length; i += 1)
+        if(list[i].length > maxLength)
+          maxLength = list[i].length;
+
+      for(i = 0; i < list.length; i += 1)
+        display('${f_#90EE90:' + list[i] + '}' + ' '.repeat(maxLength - list[i].length) + ' ${f_#7FFFD4:' + (server.fileExists((path || '') + '/' + list[i]) ? 'file' : 'directory') + '}');
+    }
+  },
+
+  mkdir: {
+    legend   : tr('Create a folder'),
+    arguments: [
+      {
+        _       : 'path',
+        legend  : tr('Folder\'s path'),
+        required: true
+      }
+    ],
+    callback : function(path) {
+      if(!server.mkdir(path))
+        displayErr(tr('Failed to make folder'));
+    }
+  },
+
   /* Secret command */
   hacker: {
     legend   : '?????????????',
     arguments: [],
     callback : function(args) {
       if(args._[0] === atob('SSdtIGEgaGFja2Vy')) {
-        save = save || {}; save.tools = save.tools || {}; save.tools.hacker = (new Date().getTime());
+        save.data.hacker = (new Date().getTime());
         display('${b_red,f_cyan,italic:You\'re a hacker now !}');
-      } else if(!save || !save.tools || !save.tools.hacker)
+      } else if(!save.data.hacker)
         return display('${b_red,f_white,italic:' + tr('You can\'t access this mysterious command.') + '}');
 
       try { display(asPlain((new Function([], args._.join(' '))()))); }

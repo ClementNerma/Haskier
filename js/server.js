@@ -70,12 +70,12 @@ var Server = function() {
     var parts = input.split(/\\|\//), out = [];
 
     for(var i = 0; i < parts.length; i++) {
-    if(parts[i] !== '.' && parts[i].length) {
-      if(parts[i] === '..' && out.length)
-      out.pop();
-      else if(parts[i] !== '..')
-      out.push(parts[i]);
-    }
+      if(parts[i] !== '.' && parts[i].length) {
+        if(parts[i] === '..' && out.length)
+          out.pop();
+        else if(parts[i] !== '..')
+          out.push(parts[i]);
+      }
     }
 
     return out.join(sep);
@@ -177,9 +177,19 @@ var Server = function() {
   };
 
   /**
+    * Create an empty file
+    * @param {string} file
+    * @return {boolean}
+    */
+  this.touchFile = function(file) {
+    return this.writeFile(file, '');
+  };
+
+  /**
     * Write a file
     * @param {string} file
     * @param {*} content
+    * @return {boolean}
     */
   this.writeFile = function(file, content) {
     if(this.dirExists(file))
@@ -190,6 +200,19 @@ var Server = function() {
       _table[file].edited = (new Date()).getTime();
 
     return ret;
+  };
+
+  /**
+    * Append to a file
+    * @param {string} file
+    * @param {*} content
+    * @return {boolean}
+    */
+  this.appendFile = function(file, content) {
+    if(!this.fileExists(file))
+      return false;
+
+    return this.writeFile(file, this.readFile(file) + '\n' + asPlain(content));
   };
 
   /**
@@ -244,20 +267,43 @@ var Server = function() {
   /**
     * Read a directory
     * @param {string} dir
+    * @param {boolean} [showHidden]
     * @return {boolean|array}
     */
-  this.readDir = function(dir) {
-    var d = _fs(dir, 'object');
+  this.readDir = function(dir, showHidden) {
+    var d = _fs(dir = normalize(dir), 'object'), out = [];
     if(!d) return false;
 
     d = Object.keys(d);
 
     for(var i = 0; i < d.length; i++) {
-      if(d[i].substr(0, 3) === '___' && typeof ({})[d[i].substr(3)] !== 'undefined')
-        d[i] = d[i].substr(3);
+      if(!_table[(dir ? dir + '/' : '') + d[i]] || !_table[(dir ? dir + '/' : '') + d[i]].hidden || (_table[(dir ? dir + '/' : '') + d[i]].hidden && showHidden)) {
+        if(d[i].substr(0, 3) === '___' && typeof ({})[d[i].substr(3)] !== 'undefined')
+          d[i] = d[i].substr(3);
+
+        out.push(d[i]);
+      }
     }
 
-    return d;
+    return out;
+  };
+
+  /**
+    * Check if a directory has subfolders
+    * @param {string} dir
+    * @return {boolean}
+    */
+  this.hasSubFolders = function(dir) {
+    var ls = this.readDir(dir = normalize(dir));
+
+    if(!ls)
+      return ls;
+
+    for(var i = 0; i < ls.length; i++)
+      if(this.dirExists(dir + '/' + ls[i]))
+        return true;
+
+    return false;
   };
 
   /**
@@ -267,10 +313,10 @@ var Server = function() {
     */
   this.removeDir = function(dir) {
     if(!this.dirExists(dir))
-    return "Directory not found";
+      return "Directory not found";
 
     if(this.ls(dir).length)
-    return "Directory is not empty";
+      return "Directory is not empty";
 
     return _fs(dir, 'object', false) ? false : "Failed to remove directory";
   };
@@ -354,7 +400,7 @@ var Server = function() {
     * @return {string}
     */
   this.chdir = function(dir) {
-    if(typeof dir === 'undefined') return _chdir || '/';
+    if(typeof dir === 'undefined') return _chdir.substr(0, 1) === '/' ? _chdir : '/' + _chdir;
     dir   = normalize(dir);
     var e = this.dirExists(dir);
     if(e) { _chdir = dir; }

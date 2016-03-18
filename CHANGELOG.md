@@ -1,4 +1,21 @@
 Fr 18-03-2016
+Haskier a-0.4
+- Added command `ui` (interface costumization)
+- Added command `help` (get help on every command)
+- Added commands `write`, `read`, `rm`, `cd`, `ls`, `mkdir`
+
+*** === Misc === ***
+- Added regex checker for commands' arguments
+- Removed unneeded font : Roboto
+- Allowed to display() empty messages
+- Added function Server.appendFile()
+- Added function Server.touchFile()
+- Hidden files are now masked by default in Server.readDir()
+
+*** === Bug fixes === ***
+- Fixed a bug with display() function that force human-like display for multiple lines texts
+
+Fr 18-03-2016
 Haskier a-0.3
 - Full HSF support
 - Added user-interaction features and human-like display

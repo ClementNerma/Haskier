@@ -18,7 +18,7 @@ function saveGame() {
       view    : term.export_view(),
       vars    : vars,
       time    : (new Date()).getTime(),
-      tools   : is_save ? save.tools : {},
+      data    : save.data,
       server  : server.export()
     }));
   }
@@ -75,13 +75,13 @@ function treatQueue() {
   if(runningCmd)
     return report_bug('treatQueue() has been called but a command is already running');
 
-  term.pause();
+  term.pause(); // $('#cover').show(); -> doesn't work better
 
   var cmd    = queue.splice(0, 1)[0];
   runningCmd = true;
 
   exec(cmd, function() {
-    term.resume();
+    term.resume(); // $('#cover').hide(); -> doesn't work better
     runningCmd = false;
     saveGame();
 
@@ -134,6 +134,16 @@ function prepareArguments(args, expected) {
         return tr('Missing argument -${long}', [arg.long]);
 
       prepare.push(args[arg.long]);
+    }
+
+    if((arg.regex && typeof prepare[prepare.length - 1] !== 'undefined' && !arg.regex.test(asPlain(prepare[prepare.length - 1])))
+    || (arg.check && typeof prepare[prepare.length - 1] !== 'undefined' && !arg.check(prepare[prepare.length - 1]))) {
+        return arg.error || tr('Bad value was specified for argument ${arg}', [
+          arg.short && arg.long ? '-' + arg.short + '|--' + arg.long :
+            arg.short ? '-' + arg.short :
+              arg.long ? '--' + arg.long :
+                i
+        ]);
     }
   }
 
@@ -194,10 +204,19 @@ function parseCommand(cmd) {
 }
 
 /**
+  * Update the entire UI
+  */
+function updateUI() {
+  updatePrompt();
+  $('.terminal, .cmd').css('font-family', (save.data.font ? save.data.font + ', ' : '') + 'Consolas, Courier, "Inconsolata"');
+  $('#infos')[save.data.hideInfobar ? 'hide' : 'show']();
+}
+
+/**
   * Update the terminal's prompt
   */
 function updatePrompt() {
-  term.set_prompt(format('${green:${name}}:${blue:' + '/' + '}$ '));
+  term.set_prompt(format('${green:${name}}:${blue:' + server.chdir() + '}$ '));
 }
 
 var queue      = [];           // Commands' queue
@@ -207,6 +226,10 @@ var server     = new Server(); // Server entity
 
 // Define #terminal as a terminal
 var term = $('#terminal').terminal(function(cmd, term) {
+  // Fix an unknown bug
+  if(cmd.substr(0, 5) === '[i;;]')
+    return ;
+
   // If there is a catch callback
   if(catchCommand) {
     // We store it in memory...
@@ -234,17 +257,32 @@ var term = $('#terminal').terminal(function(cmd, term) {
       return ;
     }
 
-    var cmd = term.get_command();
+    var cmd = term.get_command(), names, exists, args, base = cmd.split(' ')[0];
 
     // If the command is a unique word
     if(cmd === word)
       // Then we autocomplete with command names
       callback(Object.keys(commands));
-    else
-      // We autocomplete with filenames
+    else {
+      // We autocomplete with filenames AND command arguments
+      exists = commands.hasOwnProperty(base);
+      names  = [];
+
+      if(!exists)
+        error(tr('Failed to autocomplete arguments because command "${cmd}" was not found', [base]));
+      else if((args = commands[base].arguments).length) {
+        for(var i = 0; i < args.length; i++) {
+          if(args[i].long)
+            names.push('--' + args[i].long)
+          if(args[i].short)
+            names.push('-' + args[i].short);
+        }
+      }
+
       // We add an asterisc, else search engine will think we want to find files with THIS filename
       // The '*' means "all filenames whichs starts by what we've given"
-      callback(server.glob(word + '*', ['names_list', 'add_folders_slash']));
+      callback(names.concat(server.glob(word + '*', ['names_list', 'add_folders_slash'])));
+    }
   },
   clear        : true
 });
@@ -291,6 +329,8 @@ else {
   }
 }
 
+save = save || {data: {}};
+
 if(!is_save) {
   // Initialize shell variables
   // Define some shell vars
@@ -305,7 +345,6 @@ if(!is_save) {
 
   // Initialize the terminal
   term.clear();
-  updatePrompt();
 } else {
   // Restore variables
   vars = save.vars;
@@ -315,9 +354,10 @@ if(!is_save) {
   save.view.interpreters = term.export_view().interpreters;
   // Import view...
   term.import_view(save.view);
-  // ... and update prompt !
-  updatePrompt();
 }
+
+// Update interface
+updateUI();
 
 // Define global HSF scope
 var scope = {
