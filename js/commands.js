@@ -69,15 +69,15 @@ var commands = {
         long    : 'font',
         legend  : tr('Font\'s name'),
         required: false
-      },
+      }/*,
       {
-        long    : 'hide-infobar',
-        legend  : tr('Hide the information bar'),
+        long    : 'show-infobar',
+        legend  : tr('Show the information bar'),
         regex   : /^true|false$/,
         required: false
-      }
+      }*/
     ],
-    callback : function(font, hideInfobar) {
+    callback : function(font, showInfobar) {
       if(font) {
         if(font === 'reset') {
           delete save.data.font;
@@ -89,8 +89,8 @@ var commands = {
         }
       }
 
-      if(hideInfobar)
-        display(tr('The information bar has been ' + ((save.data.hideInfobar = (hideInfobar === 'true' || hideInfobar === true)) ? 'hidden' : 'unhidden')))
+      /*if(showInfobar)
+        display(tr('The information bar has been ' + ((save.data.showInfobar = (showInfobar === 'true' || showInfobar === true)) ? 'unhidden' : 'hidden')))*/
 
       updateUI();
     }
@@ -143,7 +143,7 @@ var commands = {
                     '}\n\t\t' + arg.legend;
         }
 
-        display('${bold:Description}\n${bold:===========}\n\n\t' + commands[command].legend + '\n\n${bold:Synopsis}\n${bold:========}\n\n\t' + command + syn + '\n\n' + (desc ? '${bold:Parameters}\n${bold:==========}' + desc : '\n${italic:This command does not accept any parameter.}'));
+        display('Description\n===========\n\n\t' + commands[command].legend + '\n\nSynopsis\n=========\n\n\t' + command + syn + '\n\n' + (desc ? 'Parameters\n==========' + desc : '\n${italic:' + tr('This command does not accept any parameter') + '.}'));
         return ;
       }
 
@@ -322,6 +322,38 @@ var commands = {
     callback : function(path) {
       if(!server.mkdir(path))
         displayErr(tr('Failed to make folder'));
+    }
+  },
+
+  com: {
+    legend   : tr('Manage the communication services'),
+    arguments: [
+      {
+        _       : 'state',
+        legend  : tr('${cyan:open} Open the port, ${cyan:close} Close the port'),
+        regex   : /^open|close$/,
+        required: true
+      }
+    ],
+    callback : function(state) {
+      server.state('communication-opened', state === 'open');
+      display(tr('Communication port') + ' ${cyan:' + (state === 'open' ? tr('opened') : tr('closed')) + '}');
+    }
+  },
+
+  firewall: {
+    legend   : tr('Manage the firewall'),
+    arguments: [
+      {
+        _       : 'state',
+        legend  : tr('${cyan:enable} Enable the firewall, ${cyan:disable} Disable the firewall'),
+        regex   : /^enable|disable$/,
+        required: true
+      }
+    ],
+    callback : function(state) {
+      server.state('firewall-opened', state === 'enable');
+      display(tr('Firewall') + ' ${cyan:' + (state === 'enable' ? tr('enabled') : tr('disabled')) + '}');
     }
   },
 

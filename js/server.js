@@ -5,7 +5,8 @@ var Server = function() {
   var _chdir  = '/',
     sep   = '/',
     _table  = {},
-    _files  = {};
+    _files  = {},
+    _states = {};
 
   /**
     * Clone an object
@@ -408,6 +409,19 @@ var Server = function() {
   };
 
   /**
+    * Get or set a state
+    * @param {string} name
+    * @param {*} value
+    * @return {*}
+    */
+  this.state = function(name, value) {
+    if(typeof value !== 'undefined')
+      _states[name] = clone(value);
+
+    return clone(_states[name]);
+  };
+
+  /**
     * Import a server from data
     * @param {string} somewhere Import just a part of data (see @export)
     * @param {object} data
@@ -416,17 +430,20 @@ var Server = function() {
     data   = clone(data);
 
     if(!somewhere) {
-      _table = data.table;
-      _files = data.files;
-      _chdir = data.chdir || '/';
-      sep  = data.sep   || '/';
+      _table  = data.table;
+      _files  = data.files;
+      _chdir  = data.chdir || '/';
+      _states = data.states;
+      sep     = data.sep   || '/';
     } else {
       if(somewhere === 'files')
-        _files = data;
+        _files  = data;
       else if(somewhere === 'table')
-        _table = data;
+        _table  = data;
+      else if(somewhere === 'states')
+        _states = data;
       else if(somewhere === 'sep')
-        sep  = data;
+        sep     = data;
     }
 
     data   = null; // Free memory
@@ -440,18 +457,21 @@ var Server = function() {
   this.export = function(something) {
     if(!something)
     return {
-      table: _table,
-      files: _files,
-      chdir: _chdir,
-      sep  : sep
+      table  : _table,
+      files  : _files,
+      chdir  : _chdir,
+      states : _states,
+      sep    : sep
     };
 
     if(something === 'table')
-    return clone(_table);
+      return clone(_table);
     else if(something === 'files')
-    return clone(_files);
+      return clone(_files);
+    else if(something === 'states')
+      return clone(_states);
     else if(something === 'sep')
-    return clone(sep);
+      return clone(sep);
 
     return ;
   };
@@ -562,8 +582,22 @@ var Server = function() {
     return results;
   };
 
+  /**
+    * Normalize a path
+    * @param {string} p
+    * @return {string}
+    */
   this.normalize = function(p) {
     return normalize(p);
+  };
+
+  /**
+    * Export of the `clone` function
+    * @param {*} input
+    * @return {*}
+    */
+  this.clone = function(input) {
+    return clone(input);
   };
 
   /* Make aliases */

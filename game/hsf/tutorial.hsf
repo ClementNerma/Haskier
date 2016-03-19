@@ -1,0 +1,110 @@
+clear()
+menu = choice('Pour commencer...', 'Sauvegardes', 'Restaurer sa partie après un Game Over', 'Serveurs et réseaux', 'Boutique d\'applications', 'Partage de fichiers', '${blue:Vérifier le stockage local}', '${cyan:Quitter}');
+
+// There is one else that causes a JS error
+if(menu is 1)
+  "${f_grey,italic:=== Introduction ===}\n"
+  "Bienvenue dans le ${b_blue:tutoriel} de ${haskier}."
+  "${haskier} est un jeu dans lequel vous incarnez ${name}, un jeune étudiant de 17 ans, passionné de sécurité informatique."
+  "Vous souhaitez intégrer une organisation célèbre nommée ${italic:Anonymas}."
+  "Mais ses membres ne révèlent pas leur identité au grand jour et il est complexe de les joindre."
+  "Afin de leur prouver que vous êtes doué en piratage, vous vous infiltrez sur l'un de leurs serveurs privés et récupérez la liste de leurs membres."
+  "Vous leur laissez un message leur disant que si ils veulent que vous gardiez secret cette liste, ils devront répondre à vos attentes."
+  "Pour vous joindre, ils doivent utiliser votre adresse IP que vous avez laissé à leur disposition sur leur serveur."
+  wait(1000)
+  "\n${f_grey,italic:=== Comment jouer ? ===}\n"
+  "Dans ${haskier}, vous disposez d'une interface nommée ${italic:ligne de commande}."
+  "Il s'agit d'une interface dans lequel s'affichent des messages et dans laquelle vous pouvez saisir des ${italic:commandes}."
+  "Ces ${italic:commandes} vous permettent d'effectuer diverses actions"
+  "Comme communiquer avec quelqu'un, récupérer un fichier sur un serveur, vous connecter à un autre ordinateur, etc."
+  "Si vous avez déjà utilisé des outils comme un ${italic:Terminal} sous Linux ou Mac OS,"
+  "Ou bien ${italic:cmd} ou ${italic:l'invite de commandes} sous Windows, ce tutoriel devrait se révéler assez simple pour vous."
+  "Dans le cas contraire, suivez bien les explications suivantes :\n"
+  "Une commande se compose d'un nom de commande et de ses arguments. Voici un exemple de commande :\n"
+  " ${cyan:firewall} ${green:enable}\n"
+  "La partie en ${cyan:bleue} désigne le nom de la commande et la partie en ${green:vert} ses arguments."
+  "Ici, il n'y a qu'un seul argument : ${green:enable}"
+  "Chaque argument doit être séparé par un espace. Si l'argument contient des espaces, il doit être entouré de guillemets, comme ceci :\n"
+  " ${cyan:nom_commande} ${green:argument1 argument2 \"troisième argument très long\" argument4 \"cinquième argument\"}\n"
+  "Vous voyez ?"
+  "Si vous ne savez pas quelle commande utiliser pour effectuer une action, utilisez la commande ${cyan:help}"
+  "Lorsque vous saisissez une commande, appuyez sur la touche ${bold:Entrée} pour l'exécuter"
+  "Si un message en rouge s'affiche, alors il est probable qu'une erreur se soit produite. Lisez alors le message affiché à l'écran."
+  "Il s'agit généralement d'une mauvaise utilisation de la commande (mauvais argument...)\n"
+else if(menu is 2)
+  "\n${f_grey,italic:=== Sauvegardes ===}\n"
+  "Votre partie est automatiquement sauvegardée lorsque vous rentrez une commande."
+  "Cependant, l'interruption de la partie pendant qu'une action scénaristique (moment où vous ne pouvez pas exécuter de commande) est en cours peut entraîner"
+  "La corruption de votre sauvegarde de jeu. Afin d'éviter cela, attendez que vous ayez repris le contrôle de l'invite de commandes avant de quitter le jeu."
+else if(menu is 3)
+  "\n${f_grey,italic:=== Comment restaurer sa partie après un Game Over ===}\n"
+  "Après avoir un message de ${f_red,bold:Game Over} affiché à l'écran, suivez les instructions pour réinitialiser votre partie. Le jeu va recommencer depuis le début."
+  "Dès que vous avez la main sur l'invite de commandes, tapez la commande <${cyan:save}> et choisissez l'option numéro ${bold:2}."
+  "Choisissez l'une des sauvegardes disponibles et entrez son numéro pour la restaurer. Votre partie sera alors restaurée."
+  "Notez que des copies de votre sauvegarde sont régulièrement effectuées, à des points-clés du jeu, afin de ne pas vous faire perdre trop de progression."
+else if(menu is 4)
+  "\n${f_grey,italic:=== Serveurs et réseaux ===}\n"
+  "Les ${cyan:serveurs} sont des ordinateurs qui peuvent se connecter à un ou plusieurs ${cyan:réseaux}."
+  "Un réseau est comparable au fonctionnement d'internet. Le principal réseau d'$haskier est le réseau ${hypernet}."
+  "Géré par une grande entreprise de renommée internationale, ce réseau permets l'échange de certains fichiers entre tous les serveurs connectés à ce réseau."
+  "${bold:NOTE :} Votre ordinateur personnel est également un serveur."
+else if(menu is 5)
+  "Votre ordinateur peut se connecter à une boutique d'applications en ligne nommée ${f_cyan,italic:Century Store}."
+  "Elle vous permets de télécharger de nouvelles applications qui augmenteront les capacités de votre machine."
+  "Pour y accéder, tapez la commande <${cyan:store}> et suivez les instructions qui s'affichent à l'écran."
+  "${bold:NOTE :} Vous n'aurez jamais à payer avec de l'argent réel dans le jeu."
+else if(menu is 6)
+  "Certains serveurs du jeu partagent des fichiers avec tous les ordinateurs connectés au réseau ${hypernet}."
+  "Vous pouvez accéder à ces fichiers sans saisir ni login ni mot de passe, car ils sont publics."
+  "Utilisez la commande <${cyan:browser}> pour lire les fichiers partagés entre les serveurs."
+else if(menu is 7)
+  "Le stockage local de votre ordinateur va être testé."
+  "Il est possible que le ventilateur de votre PC s'active et que celui-ci se mette à faire beaucoup de bruit durant quelques instants"
+  "Cela est parfaitement normal. Si, au bout d'une minute, le test n'est pas terminé, quittez le jeu (en fermant l'onglet par exemple)"
+
+  test = confirm("Lancer le test ? ")
+
+  if(test isnt true)
+    repeat()
+  endif
+
+  test = localStorageStats(true)
+
+  "Voici les résultats du test :"
+  "Vous disposez d'environ ${scope.test.approx.round} de stockage"
+  "Le minimum recommandé est de 250 Kb (0.25 Mb)"
+
+  if(test.approx.round < 250 * 1024 * 1024)
+    "Il semblerait que vous ayez moins d'espace libre que l'espace minimal recommandé"
+
+    if(test.approx.round < 25 * 1024)
+      "${red:L'espace dont vous diposez est inférieur à 25 Kb. Vous risquez de ne plus pouvoir sauvegarder passé un certain point.}"
+      "Afin d'éviter cela, suivez bien les instructions suivantes"
+    endif
+
+    fix = confirm("Voulez-vous que nous tentions de résoudre ce problème ? Cette opération est sans danger.")
+
+    if(scope.spaceFixTried is true)
+      "Nous n'arrivons pas à corriger le problème. Cela est sans doute dû au fait que votre navigateur ne supporte pas"
+      "de stocker autant d'informations. Veuillez utiliser un autre navigateur ou bien, si vous préférez utiliser celui-ci,"
+      "Afin de ne pas être empêché de sauvegarder, utilisez la commande <${cyan:save-manager --no-backup}>"
+    else
+      if(fix is true)
+        localStorage.clear(); scope.spaceFixTried = true; go();
+        "Réeffectuez ce test dès à présent."
+      else
+        "Le manque d'espace de stockage peut vous empêcher de sauvegarder."
+        "Afin de ne pas être empêché de sauvegarder, utilisez la commande <${cyan:save-manager --no-backup}>"
+        wait(1000)
+      endif
+    endif
+  else
+    "Vous disposez de suffisamment d'espace disque pour sauvegarder. Bon jeu !"
+  endif
+endif x7
+
+if(menu isnt 8)
+  display(" ")
+  wait("Appuyez sur un touche")
+  repeat()
+endif

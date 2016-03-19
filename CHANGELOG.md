@@ -1,3 +1,25 @@
+Sa 19-03-2016
+Haskier a-0.5
+- Added asynchrounous functions support for HSF
+- Improved HSF's scope
+- Now HSF scripts are written in JavaScript instead in Math.js
+- Added conditions' support in HSF
+- Added labels' support in HSF, can go to a previous instruction
+- Can go to every label, repeat current label, go to next label
+- Added HSF instructions : `human`, `question`, `choice`, `confirm`, `leave`, `freeze`, `restore`, `setTodoModel`, `todo`, `goto`, `repeat`, `next`, `wait`, `testLocalStorage`
+- Synchronous HSF can run asynchronous operations and wait the answer
+- Progression is now fully saved
+- Added multi-scenaristic files support
+- Added commands : `com`, `firewall`
+
+*** === Misc === ***
+- format() supports objects calls => '${scope.test.result.approx}'
+- Disabled browser's cache for Ajax calls
+
+*** === Bug fixes === ***
+- Fixed a bug with command's catcher callback
+- Fixed a bug with asynchronous inputs
+
 Fr 18-03-2016
 Haskier a-0.4
 - Added command `ui` (interface costumization)

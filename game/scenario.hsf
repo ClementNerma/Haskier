@@ -1,8 +1,0 @@
-# HSF: Haskier Scenario File
-
-clear()
-#choice("Pour commencer...", "Sauvegardes", "Restaurer sa partie après un Game Over", "Serveurs et réseaux", "Boutique d'applications", "Partage de fichiers", "${cyan:Quitter}")
-print("Hello !")
-print("How are you ?")
-print("Me, I'm fine !")
-print("And you ?")

@@ -1,0 +1,25 @@
+// HSF: Haskier Scenario File
+
+// Define some todo models
+setTodoModel('open-communication-port', 'server.state(\'communication-opened\') === true')
+FREEZE_UNTIL_TODO = true ;
+ALLOW_TRANSLATION = false;
+// Restore the game's save
+restore()
+
+: TUTORIAL
+choice("Voir le tutoriel (recommandé si vous jouez pour la première fois à ${haskier})", "Ignorer le tutoriel")
+wait(1000)
+
+if(answer is 2)
+  goto("INIT")
+endif
+
+: TUTORIAL_CONTENT
+#include("tutorial.hsf")
+
+: INIT => Début du jeu
+clear()
+"${b_blue:Système} ${italic:Quelqu'un cherche à vous joindre}"
+"${b_blue:Système} ${italic:Pour ouvrir la communication, tapez} <${cyan:com open}>"
+todo('open-communication-port')

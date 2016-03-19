@@ -8,6 +8,7 @@ var tr_pkg = (function() {
 
   var req = $.ajax({
     url  : 'com/get-translation.run?lang=' + target,
+    cache: false,
     async: false
   });
 

@@ -1,5 +1,7 @@
 'use strict';
 
+const humanSpeed = 80;
+
 /**
   * Report a bug
   * @param {string} error
@@ -41,16 +43,10 @@ function error(message, supp) {
   if(supp) console.error(supp);
 
   // Display the error in the informations bar
-  $('#infos').text(message).css('color', 'red');
+  //$('#infos').text(message).css('color', 'red');
 }
 
-/**
-  * Display an information
-  * @param {string} message
-  */
-function info(message) {
-  $('#infos').text(message);
-}
+/* Remove info() message */
 
 /**
   * Format a text to display it into the terminal
@@ -59,8 +55,22 @@ function info(message) {
 function format(text) {
   return text
     // Format all variable names 'My text ${var}'
-    .replace(/\${([a-zA-Z0-9_]+)}/g, function(match, val) {
-      return vars.hasOwnProperty(val) ? vars[val] : match;
+    .replace(/\${([a-zA-Z0-9_\.]+)}/g, function(match, val) {
+      val = val.split('.');
+
+      if(val.length === 1)
+        return vars.hasOwnProperty(val[0]) ? vars[val[0]] : match;
+
+      var d = vars;
+
+      for(var i = 0; i < val.length - 1; i++) {
+        if(typeof d[val[i]] !== 'object' || !d[val[i]])
+          return match;
+
+        d = d[val[i]];
+      }
+
+      return typeof d[val[i]] !== 'undefined' ? d[val[i]] : match;
     })
     // Format all colors call 'My text ${red:My second text}'
     .replace(/\${([a-zA-Z0-9#_, ]+?):(.*?)}/g, function(match, style, content) {
@@ -113,7 +123,7 @@ var displayingIndex;         // Displaying char index
   * @param {function} humanLike Display like a human and call callback when finished
   */
 function display(message, humanLike) {
-  // If the message is empty
+  message = asPlain(message);
   var split = message.split(/\r|\n|\r\n/);
 
   // If the message is composed of more than one line, treat it as multiple messages
@@ -181,9 +191,10 @@ function treatDisplayQueue() {
   // We'll use the prompt to display the text, so we've to make it empty
   term.set_prompt('');
   // Show the cover to make user unable to type some text in the terminal during the display
-  $('#cover').show();
+  ignoreKeys = true;
 
   // Treat the string's display
+  //setTimeout(treatDisplay, (game.getVar('humanSpeed') || humanSpeed) * 6);
   treatDisplay();
 }
 
@@ -221,7 +232,7 @@ function treatDisplay() {
       // Recover the 'normal' prompt
       updatePrompt();
       // Hide the cover to make user able to type some commands in the terminal
-      $('#cover').hide();
+      ignoreKeys = false;
     }
 
     // Call the display callback (because there is one)
@@ -240,7 +251,7 @@ function treatDisplay() {
   // So we update the prompt with all chars to the last we can display ('Hello I'm John' 5 -> 'Hello')
   term.set_prompt(displaying.slice(0, displayingIndex));
   // We plan to display the next character in few miliseconds
-  setTimeout(treatDisplay, game.getVar('humanSpeed') || 150);
+  setTimeout(treatDisplay, game.getVar('humanSpeed') || humanSpeed);
 }
 
 /**
@@ -254,4 +265,55 @@ function question(message, callback, dontSpace) {
   term.set_prompt(message + (dontSpace ? '' : ' '));
   // Make callback catch the input instead of treating it as a command
   catchCommand = callback;
+}
+
+/**
+  * Make user making a choice
+  * @param {array} choices
+  * @param {function} callback
+  */
+function choice(args, callback) {
+
+  for(var i = 0; i < args.length; i++)
+    //display(' [' + (i + 1) + '] ' + args[i]);
+    display('${bold:' + (i + 1) + ' : }' + args[i]);
+
+  //term.set_prompt('[1-' + args.length + '] ? ');
+  display('');
+  term.set_prompt(tr('Your choice [1-${end}] ?', [args.length]) + ' ');
+
+  catchCommand = function(ans) {
+    if(Number.isNaN(ans = parseInt(ans))) {
+      display_error(tr('Answer must be a number'));
+      return true;
+    }
+
+    if(ans < 1 || Math.floor(ans) !== ans || ans > args.length) {
+      display_error(tr('Bad answer'));
+      return true;
+    }
+
+    callback(ans, args[ans - 1]);
+  };
+}
+
+/**
+  * Ask user for a confirmation
+  * @param {string} message
+  * @param {function} Callback
+  */
+function confirm(message, callback) {
+  var confirm_keys = tr('y-n'), yes_key = confirm_keys.substr(0, 1).toLocaleLowerCase(), no_key = confirm_keys.substr(2, 1).toLocaleLowerCase();
+
+  term.set_prompt(message + ' [' + confirm_keys + '] ');
+  catchCommand = function(ans) {
+    ans = ans.toLocaleLowerCase();
+
+    if(ans !== yes_key && ans !== no_key) {
+      display_error(tr('Please type `${yes_key}` or `${no_key}`', [yes_key, no_key]));
+      return true;
+    }
+
+    callback(ans === yes_key);
+  };
 }
