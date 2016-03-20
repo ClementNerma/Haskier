@@ -1,38 +1,86 @@
 'use strict';
 
-var Server = function() {
+Object.defineProperty(window, 'Server', {
+  enumerable: true,
+  configurable: false,
+  writable: false,
+  value: function() {
 
   var _chdir  = '/',
-    sep   = '/',
-    _table  = {},
-    _files  = {},
-    _states = {};
+        sep   = '/',
+      _table  = {},
+      _files  = {},
+      _states = {},
+      _netwk  = [],
+      _events = {incoming: {}},
+
+      _ports    = [],
+      _requests = {};
 
   /**
-    * Clone an object
-    * @param {object} oReferance
-    * @return {object}
+    * Generate a random ID
+    * @return {string}
+    */
+  function generateId() {
+    function g() { return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1); }
+    return g() + '-' + g() + '-' + g() + '-' + g();
+  }
+
+  /**
+    * Clone any value
+    * @param {*} oReferance Value to clone
+    * @return {*} Cloned value
     */
   var clone = function(oReferance) {
     var aReferances = new Array();
     var getPrototypeOf = function(oObject) {
-    if(typeof(Object.getPrototypeOf)!=="undefined") return Object.getPrototypeOf(oObject);
-    var oTest = new Object();
-    if(typeof(oObject.__proto__)!=="undefined"&&typeof(oTest.__proto__)!=="undefined"&&oTest.__proto__===Object.prototype) return oObject.__proto__;
-    if(typeof(oObject.constructor)!=="undefined"&&typeof(oTest.constructor)!=="undefined"&&oTest.constructor===Object&&typeof(oObject.constructor.prototype)!=="undefined") return oObject.constructor.prototype;
-    return Object.prototype;
+      if(typeof(Object.getPrototypeOf)!=="undefined")
+        return Object.getPrototypeOf(oObject);
+
+      var oTest = new Object();
+
+      if(typeof(oObject.__proto__)!=="undefined" && typeof(oTest.__proto__)!=="undefined" && oTest.__proto__===Object.prototype)
+        return oObject.__proto__;
+
+      if(typeof(oObject.constructor)!=="undefined" && typeof(oTest.constructor)!=="undefined" && oTest.constructor===Object && typeof(oObject.constructor.prototype)!=="undefined")
+        return oObject.constructor.prototype;
+
+      return Object.prototype;
     };
+
     var recursiveCopy = function(oSource) {
-    if(typeof(oSource)!=="object") return oSource;
-    if(oSource===null) return null;
-    for(var i=0;i<aReferances.length;i++) if(aReferances[i][0]===oSource) return aReferances[i][1];
-    var Copy = new Function();
-    Copy.prototype = getPrototypeOf(oSource);
-    var oCopy = new Copy();
-    aReferances.push([oSource,oCopy]);
-    for(var sPropertyName in oSource) if(oSource.hasOwnProperty(sPropertyName)) oCopy[sPropertyName] = recursiveCopy(oSource[sPropertyName]);
-    return oCopy;
+      if(typeof(oSource)!=="object")
+        return oSource;
+
+      if(oSource===null)
+        return null;
+
+      for(var i = 0; i < aReferances.length; i++)
+        if(aReferances[i][0]===oSource)
+          return aReferances[i][1];
+
+      if(Array.isArray(oSource)) {
+        var oCopy = [];
+        oCopy.prototype = getPrototypeOf(oSource);
+        aReferances.push([oSource, oCopy]);
+
+        for(var k in oSource)
+          oCopy[k] = recursiveCopy(oSource[k]);
+      } else {
+        var Copy = new Function();
+        Copy.prototype = getPrototypeOf(oSource);
+        var oCopy = new Copy();
+        aReferances.push([oSource,oCopy]);
+
+        for(var sPropertyName in oSource) {
+          if(oSource.hasOwnProperty(sPropertyName))
+            oCopy[sPropertyName] = recursiveCopy(oSource[sPropertyName]);
+        }
+      }
+
+      return oCopy;
     };
+
     return recursiveCopy(oReferance);
   };
 
@@ -249,7 +297,8 @@ var Server = function() {
     * @return {boolean}
     */
   this.removeFile = function(file) {
-    var ret = _fs(file, 'string', false);
+    if(!this.fileExists(file)) return false;
+    return _fs(file, 'string', false);
   };
 
   /**
@@ -328,10 +377,20 @@ var Server = function() {
     * @return {boolean|string}
     */
   this.removeTree = function(dir) {
-    if(!this.dirExists(dir))
-    return "Directory not found";
+    if(!this.dirExists(dir = normalize(dir)))
+      return "Directory not found";
 
-    return _fs(dir, 'object', false) ? false : "Failed to remove directory";
+    var ret = _fs(dir, 'object', false);
+
+    if(!ret)
+      return "Failed to remove directory";
+
+    var keys = Object.keys(_table);
+
+    // Remove entries from the files table
+    for(var i = 0; i < keys.length; i++)
+      if(keys[i].substr(0, dir.length + 1) === dir + '/')
+        delete _table[keys[i]];
   };
 
   /**
@@ -422,9 +481,70 @@ var Server = function() {
   };
 
   /**
+    * Check if the server is connected to a specific network
+    * @param {string} name
+    * @return {boolean}
+    */
+  this.network = function(name) {
+    return _netwk.indexOf(name) !== -1
+  };
+
+  /**
+    * Import a directory
+    * @param {object} folder
+    * @param {string} [path] Importation path
+    * @return {boolean}
+    */
+  this.importFolder = function(folder, path) {
+    if(typeof folder !== 'object' || !folder || Array.isArray(folder)
+    || typeof folder.path !== 'string' || typeof folder.folder !== 'object' || !folder.folder || Array.isArray(folder)
+    || typeof folder.table !== 'object' || !folder.table || Array.isArray(folder.table))
+       return false;
+
+    folder   = clone(folder);
+    var path = normalize(path || folder.path);
+
+    if(this.dirExists(path))
+      this.removeTree(path);
+    else if(this.fileExists(path))
+      this.removeFile(path);
+
+    var success = _fs(path, 'object', folder.folder), keys = Object.keys(folder.table);
+
+    for(var i = 0; i < keys.length; i++)
+      _table[path + '/' + keys[i]] = folder.table[keys[i]];
+
+    return true;
+  };
+
+  /**
+    * Export a directory
+    * @param {string} path
+    * @return {boolean|object}
+    */
+  this.exportFolder = function(path) {
+    var folder = _fs(path = normalize(path), 'object');
+
+    if(!folder)
+      return false;
+
+    var table = {}, keys = Object.keys(_table);
+
+    for(var i = 0; i < keys.length; i++)
+      if(keys[i].substr(0, path.length + 1) === path + '/' || keys[i] === path)
+        table[keys[i].substr(path.length + 1)] = _table[keys[i]];
+
+    return clone({
+      path  : path  ,
+      folder: folder,
+      table : table
+    });
+  };
+
+  /**
     * Import a server from data
-    * @param {string} somewhere Import just a part of data (see @export)
     * @param {object} data
+    * @param {string} [somewhere] Import just a part of data (see @export)
     */
   this.import = function(data, somewhere) {
     data   = clone(data);
@@ -434,6 +554,7 @@ var Server = function() {
       _files  = data.files;
       _chdir  = data.chdir || '/';
       _states = data.states;
+      _netwk  = data.netwk;
       sep     = data.sep   || '/';
     } else {
       if(somewhere === 'files')
@@ -442,6 +563,8 @@ var Server = function() {
         _table  = data;
       else if(somewhere === 'states')
         _states = data;
+      else if(somewhere === 'networks')
+        _netwk  = data;
       else if(somewhere === 'sep')
         sep     = data;
     }
@@ -450,8 +573,22 @@ var Server = function() {
   };
 
   /**
+    * Import a server from data
+    * @param {object} data
+    * @param {string} [somewhere] Import just a part of data (see @export)
+    * @return {boolean}
+    */
+  this.importJSON = function(data, somewhere) {
+    try { data = JSON.parse(data); }
+    catch(e) { return false; }
+
+    this.import(data, somewhere);
+    return true;
+  };
+
+  /**
     * Export the server as data
-    * @param {string} something Export just one thing
+    * @param {string} [something] Export just one thing
     * @return {object} data
     */
   this.export = function(something) {
@@ -461,6 +598,7 @@ var Server = function() {
       files  : _files,
       chdir  : _chdir,
       states : _states,
+      netwk  : _netwk,
       sep    : sep
     };
 
@@ -470,10 +608,22 @@ var Server = function() {
       return clone(_files);
     else if(something === 'states')
       return clone(_states);
+    else if(something === 'networks')
+      return clone(_netwk);
     else if(something === 'sep')
       return clone(sep);
 
     return ;
+  };
+
+  /**
+    * Export the server as data (JSON plain text)
+    * @param {string} [something] Export just one thing
+    * @return {string}
+    */
+  this.exportJSON = function(something) {
+    var ret = this.export(something);
+    return ret ? JSON.stringify(ret) : ret;
   };
 
   /**
@@ -600,8 +750,120 @@ var Server = function() {
     return clone(input);
   };
 
+  /**
+    * Catch an event
+    * @param {string} name
+    * @param {function} callback
+    * @param {string} [ID] Callback ID. If omitted, random ID
+    * @return {string|boolean} Callback ID or false if failed
+    */
+  this.catch = function(name, callback, ID) {
+    ID = ID || generateId();
+
+    if((_events[name] && _events[name][ID]) || typeof callback !== 'function')
+      return false;
+
+    if(!_events.hasOwnProperty(name))
+      _events[name] = {};
+
+    // Server allows only one catcher for 'incoming' event
+    if(name.substr(0, 9) === 'incoming:' && Object.keys(_events.incoming).length)
+      return false;
+
+    _events[name][ID] = callback;
+    return true;
+  };
+
+  /**
+    * Uncatch an event
+    * @param {string} name
+    * @param {string} [ID] Callback ID. If omitted, will remove all callbacks for this event
+    * @return {boolean}
+    */
+  this.uncatch = function(name, callback, ID) {
+    if(!_events.hasOwnProperty(name) || (ID && !_events[name][ID]))
+      return false;
+
+    if(ID)
+      delete _events[name][ID];
+    else
+      _events[name] = {};
+  };
+
+  /**
+    * Make a request on the server
+    * @param {object} request
+    * @param {function} callback
+    * @return {string|void}
+    */
+  this.request = function(request, callback) {
+    if(typeof request.port === 'string')
+      request.port = parseInt(request.port);
+
+    if(typeof callback !== 'function')
+      return 'Bad callback';
+
+    if(typeof request.url !== 'string')
+      return 'Bad request, url is not valid';
+
+    if(typeof request.headers !== 'object' || !request.headers || Array.isArray(request.headers))
+      return 'Bad request, headers are not valid';
+
+    if(typeof request.port !== 'number' || Number.isNaN(request.port))
+      return 'Bad request, port is not valid';
+
+    if(typeof request.network !== 'string')
+      return 'Bad request, network is not valid';
+
+    if(typeof request.client !== 'string')
+      return 'Bad request, client is not valid';
+
+    // If server is not connected to the request's network
+    if(_netwk.indexOf(request.network) === -1)
+      return 'Server is not connected to this networks';
+
+    request = clone(request);
+    request.id = generateId();
+
+    // If there is no catcher, this port is not opened
+    if(!_events['incoming:' + request.port])
+      return 'Port ' + request.port + ' is not opened';
+
+    var names = Object.keys(_events['incoming:' + request.port]), response = new this.response(callback);
+
+    _events['incoming:' + request.port][names[0]](request, response);
+
+    return ;
+  };
+
+  /**
+    * Generate a random ID
+    * @return {string}
+    */
+  this.generateId = function() { return generateId(); };
+
+  /**
+    * Get the server's ID
+    * @return {string}
+    */
+  this.id = function() { return id; };
+  var  id = generateId();
+
   /* Make aliases */
   this.mkdir = this.makeDir;
-  this.ls  = this.readDir;
+  this.ls    = this.readDir;
+  this.on    = this.catch  ;
+  this.off   = this.uncatch;
 
-};
+  /* Classes */
+
+  this.response  = function(onEnd) {
+    this.end     = function() { onEnd(this); };
+    this.headers = {};
+    this.content = '';
+  };
+
+  /* Freeze the server's instance */
+  Object.freeze(this);
+
+}});

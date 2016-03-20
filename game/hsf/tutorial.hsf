@@ -56,13 +56,13 @@ else if(menu is 5)
 else if(menu is 6)
   "Certains serveurs du jeu partagent des fichiers avec tous les ordinateurs connectés au réseau ${hypernet}."
   "Vous pouvez accéder à ces fichiers sans saisir ni login ni mot de passe, car ils sont publics."
-  "Utilisez la commande <${cyan:browser}> pour lire les fichiers partagés entre les serveurs."
+  "Utilisez la commande <${cyan:icefox}> pour lire les fichiers partagés entre les serveurs."
 else if(menu is 7)
   "Le stockage local de votre ordinateur va être testé."
   "Il est possible que le ventilateur de votre PC s'active et que celui-ci se mette à faire beaucoup de bruit durant quelques instants"
   "Cela est parfaitement normal. Si, au bout d'une minute, le test n'est pas terminé, quittez le jeu (en fermant l'onglet par exemple)"
 
-  test = confirm("Lancer le test ? ")
+  test = confirm("Lancer le test ?")
 
   if(test isnt true)
     repeat()
@@ -105,6 +105,6 @@ endif x7
 
 if(menu isnt 8)
   display(" ")
-  wait("Appuyez sur un touche")
+  wait("Appuyez sur une touche")
   repeat()
 endif

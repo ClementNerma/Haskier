@@ -1,0 +1,8 @@
+{
+    "description": "Personnal computer for ${name}",
+    "login": {
+        "identifier": "$master",
+        "password": "m@st€rP@ssw0rd"
+    },
+    "networks": ["hypernet", "__local_Shaun"]
+}

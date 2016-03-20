@@ -22,6 +22,7 @@
   <script type="text/javascript" src="js/comm.js"></script>
   <script type="text/javascript" src="js/translate.js"></script>
   <script type="text/javascript" src="js/commands.js"></script>
+  <script type="text/javascript" src="js/network.js"></script>
   <script type="text/javascript" src="js/server.js"></script>
   <script type="text/javascript" src="js/hsf-parser.js"></script>
   <script type="text/javascript" src="js/haskier.js"></script>
@@ -31,6 +32,7 @@
     function r()  { localStorage.clear(); window.location.reload();    }
     function b(f) { var d; d = Date.now(); f(); return Date.now() - d; }
     function l(n) { var r = JSON.parse(localStorage.getItem('haskier')); return n ? r[n] : r; }
+    function u(n) { var r = server.importFolder({folder:haskier.servers.__store.webroot[n],table:{},path:'/webroot/' + n}, 'apps/' + n); saveGame(); return r; }
   </script>
 </body>
 </html>

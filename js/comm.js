@@ -46,6 +46,18 @@ function error(message, supp) {
   //$('#infos').text(message).css('color', 'red');
 }
 
+/**
+  * Fatal error !
+  * @param {string} message
+  */
+function fatal(message) {
+  term.set_prompt('');
+  ignoreKeys = true;
+  alert(tr('Game has stopped because of a fatal error') + ' :\n' + message);
+  display_error(message);
+  throw new Error(message);
+}
+
 /* Remove info() message */
 
 /**

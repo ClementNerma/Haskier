@@ -1,0 +1,71 @@
+'use strict';
+
+register('icefox', {
+  legend   : tr('Get a web page\'s content'),
+  arguments: [
+    {
+      _       : 'url',
+      legend  : tr('File\'s URL'),
+      required: true
+    },
+    {
+      _       : 'server',
+      legend  : tr('Server\'s IP if you want to connect to a server. Then, remove the prefix ${grey:xxx://}'),
+      regex   : RegexCollection.IP,
+      error   : tr('Bad IP adress was specified')
+    }
+  ],
+  async    : true,
+  callback : function(url, IP, resolve) {
+    if(!server.network('hypernet')) // ... is not a function
+      return display_error(tr('Your computer is not connected to hypernet'));
+
+    if(IP) {
+      // connect to a specific server
+      if(!servers.hasOwnProperty(IP) || !servers[IP].network('hypernet'))
+        return display_error(tr('This server doesn\'t exist or isn\'t connected to hypernet'));
+    } else {
+      // use Hypernet DNS
+      // here, we have to set the IP adress
+      var parsed = networks.hypernet.parseUrl(url);
+
+      if(!parsed)
+        return resolve('${red:' + tr('Specified URL is not valid') + '}');
+
+      IP  = parsed.IP ;
+      url = parsed.url;
+    }
+
+    var length = 12, prompt = '.';
+    term.set_prompt(prompt);
+
+    var blink = setInterval(function() {
+      if(prompt.length === length)
+        prompt = '.';
+      else
+        prompt += '.';
+
+      term.set_prompt(prompt);
+    }, 500);
+
+    var error = servers[IP].request({
+      url    : url,
+      headers: {},
+      network: 'hypernet',
+      client : serverName,
+      port   : 80
+    }, function(response) {
+      clearInterval(blink);
+
+      if(response.headers.code === 200)
+        resolve(response.content);
+      else
+        resolve('${red:' + tr('Error: Server returned status ${status}', [response.headers.code]) + '}\n${red:' + response.content + '}');
+    });
+
+    if(error) {
+      clearInterval(blink);
+      resolve('${red:' + tr('Failed to connect to server') + '}\n${red:' + tr(error) + '}');
+    }
+  }
+});

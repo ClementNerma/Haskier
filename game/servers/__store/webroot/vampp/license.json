@@ -1,0 +1,8 @@
+{
+    "name"   : "VAMPP",
+    "author" : "Clément Nerma",
+    "upload" : "20/03/2015",
+    "license": "CC-BY-NC-ND-4.0",
+
+    "description": "Outil de mise en place de serveur internet"
+}

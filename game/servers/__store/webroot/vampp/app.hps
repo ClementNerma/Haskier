@@ -1,0 +1,38 @@
+'use strict';
+
+register('vampp', {
+  legend   : tr('Make a web server to share files'),
+  arguments: [
+    {
+      _       : 'port',
+      regex   : /^[0-9]{1,4}$/,
+      legend  : tr('Port to use. If omitted, use the port 80.')
+    }
+  ],
+  callback : function(port) {
+    if(this.data.running)
+      return display_error(tr('VAMPP server is already running'));
+
+    var catched = server.catch('incoming:' + (port || 80), function(request, response) {
+      var file   = '/webroot/' + server.normalize(request.url);
+
+      if(!server.fileExists(file)) {
+        response.headers['code'] = 404;
+        response.content = tr('Requested file was not found');
+      } else {
+        response.headers['code'] = 200;
+        response.content = file.substr(file.length - 4, 4) === '.xms' ? server.readFile(file) : jQuery.terminal.escape_formatting(server.readFile(file)).replace(/{/g, '&#123;').replace(/}/g, '&#125;');
+      }
+
+      response.end();
+    });
+
+    if(catched)
+      display(tr('VAMPP server is now running'));
+    else
+      display_error(tr('VAMPP server mouting has failed'));
+
+    this.data.running = true;
+  },
+  data     : {}
+});

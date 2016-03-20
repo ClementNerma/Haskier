@@ -1,5 +1,7 @@
 'use strict';
 
+// TODO: FIXBUG: When refresh page two times, progression is reset
+
 var hidden = $('#terminal, #fullscreen_trigger').hide(),
   dontRecoverPrompt = false, hsf_conds = [], todo = [], justRestored = false, justRestoredLabel = false,
   ignoreKeys = false;
@@ -7,19 +9,24 @@ var hidden = $('#terminal, #fullscreen_trigger').hide(),
 /*const*/var readingLineDuration = 50;
 const backup_prefix = 'hbak_auto_';
 
+//var clone=function(t){var r=new Array,e=function(t){if("undefined"!=typeof Object.getPrototypeOf)return Object.getPrototypeOf(t);var r=new Object;return"undefined"!=typeof t.__proto__&&"undefined"!=typeof r.__proto__&&r.__proto__===Object.prototype?t.__proto__:"undefined"!=typeof t.constructor&&"undefined"!=typeof r.constructor&&r.constructor===Object&&"undefined"!=typeof t.constructor.prototype?t.constructor.prototype:Object.prototype},o=function(t){if("object"!=typeof t)return t;if(null===t)return null;for(var n=0;n<r.length;n++)if(r[n][0]===t)return r[n][1];if(Array.isArray(t)){var p=[];p.prototype=e(t),r.push([t,p]);for(var f in t)p[f]=o(t[f])}else{var u=new Function;u.prototype=e(t);var p=new u;r.push([t,p]);for(var c in t)t.hasOwnProperty(c)&&(p[c]=o(t[c]))}return p};return o(t)};
+var clone = (new Server()).clone;
+
 /**
   * Start the game !
   */
 function ready() {
+  var started = Date.now();
+
   hidden.show();
 
-  game.event('label', function() {
+  game.event('label', function(name) {
     if(game.getVar('FREEZE_UNTIL_TODO'))
       game.setVar('dont_update_prompt', true);
 
-    if(!justRestoredLabel)
+    if(!justRestoredLabel) {
       saveGame(); // useless ?
-    else
+    } else
       justRestoredLabel = false;
   });
 
@@ -46,6 +53,69 @@ function ready() {
     return HSF_files[filename];
   });
 
+  var names = Object.keys(haskier.servers), name, apps, j, d, commands, l;
+
+  for(var i = 0; i < names.length; i++) {
+    name = names[i];
+    servers[name] = new Server();
+
+    if(save.servers && save.servers[name])
+      servers[name].import(save.servers[name]);
+    else {
+      /*try {*/ servers[name].import(haskier.servers[names[i]], 'files'); //}
+      //catch(e) { alert(tr('Failed to load game. Please try later.')); console.error('Failed to parse server\'s file "' + name + '" :\n' + e.stack); }
+
+      try { servers[name].import(JSON.parse(haskier.servers[names[i]]['.sys']['server.sys']).networks || [], 'networks'); }
+      catch(e) { }
+    }
+  }
+
+  if(!save.time && haskier['install.js'])
+    window.eval(haskier['install.js']);
+
+  display(tr('Starting up the servers...'));
+  console.log('Starting up servers...');
+
+  for(i = 0; i < names.length; i++) {
+    display(tr('Starting up server ${num} of ${total}...', [i + 1, names.length]))
+
+    d = Date.now();
+    apps = servers[names[i]].glob('apps/*/app.hps');
+    serversCommands[names[i]] = clone(_commands);
+
+    for(j = 0; j < apps.length; j++)
+      (new Function(['server', 'register'], servers[names[i]].readFile(apps[j].path))).apply(window, [servers[names[i]], function(name, command) {
+        if(typeof command.legend !== 'string' || !Array.isArray(command.arguments) || typeof command.callback !== 'function')
+          fatal('Can\'t register invalid command "' + name + '"');
+
+        serversCommands[names[i]][name] = command;
+      }]);
+
+    if(servers[names[i]].fileExists('/user/init.hss')) {
+      updateServer(names[i]);
+      commands = server.readFile('/user/init.hss').split('\n');
+
+      for(l = 0; l < commands.length; l++)
+        command(commands[l]);
+    }
+
+    console.log('Starting up server ' + (i + 1) + '/' + names.length + ' (' + (Date.now() - d) + ' ms)');
+  }
+
+  console.info('All servers were started !');
+
+  display(tr('Preparing networks...'));
+
+  names = Object.keys(haskier.networks);
+
+  for(var i = 0; i < names.length; i++)
+    networks[names[i].substr(0, names[i].lastIndexOf('.'))] = new Network(haskier.networks[names[i]]);
+
+  term.clear();
+  updateServer(save.server || '__local');
+
+  console.info('Gamed started in ' + (Date.now() - started) + ' ms');
+
   go();
 }
 
@@ -69,14 +139,19 @@ function saveGame() {
   delete vars.scope;
 
   try {
-    var lastSave = localStorage.getItem('haskier');
+    var lastSave = localStorage.getItem('haskier'), _servers = {}, names = Object.keys(servers);
+
+    // Export all servers
+    for(var i = 0; i < names.length; i++)
+      _servers[names[i]] = servers[names[i]].export();
 
     localStorage.setItem('haskier', JSON.stringify({
       view    : term.export_view(),
       vars    : vars,
       time    : (new Date()).getTime(),
       data    : save.data,
-      server  : server.export(),
+      servers : _servers,
+      server  : serverName,
       scope   : game.diffScope(),
       label   : game.label(),
       marker  : game.marker(),
@@ -186,7 +261,12 @@ function treatQueue() {
   var cmd    = queue.splice(0, 1)[0];
   runningCmd = true;
 
-  exec(cmd, function() {
+  exec(cmd, function(text) {
+    if(typeof text !== 'undefined')
+      display(text);
+
+    updatePrompt();
+
     ignoreKeys = false; //term.resume(); // $('#cover').hide(); -> doesn't work better
     runningCmd = false;
     didSomethingAfterSave = true;
@@ -228,10 +308,9 @@ function prepareArguments(args, expected) {
       if(_.length <= ++j) {
         if(arg.required)
           return tr('Missing argument "${name}"', [arg._]);
-        else {
+        else
           // Because argument is not required, we put an empty argument instead
           prepare.push(undefined);
-        }
       } else
         prepare.push(_[j]);
     } else if(arg.short && arg.long) {
@@ -297,9 +376,17 @@ function exec(cmd, callback) {
     return ;
   }
 
-  prepare = prepare.concat(call.async ? [callback, cmd] : cmd);
+  //prepare = prepare.concat(call.async ? [callback, cmd] : cmd);
+  if(call.async) {
+    // Remove prompt
+    term.set_prompt('');
+    // Add the resolver callback
+    prepare.push(callback);
+  }
 
-  call.callback.apply(window, prepare);
+  prepare.push(cmd);
+
+  call.callback.apply(call, prepare);
 
   if(!call.async) {
     runningCmd = false;
@@ -341,10 +428,23 @@ function updatePrompt() {
     term.set_prompt(format('${green:${name}}:${blue:' + server.chdir() + '}$ '));
 }
 
+/**
+  * Update the server
+  * @param {string} name
+  */
+function updateServer(name) {
+  serverName = name;
+  server     = servers[name];
+  commands   = serversCommands[name];
+}
+
 var queue      = [];           // Commands' queue
 var runningCmd = false;        // Is running a command ?
 var vars       = {};           // All shell variables
-var server     = new Server(); // Server entity
+var servers    = {};           // Servers entities
+var server     ;               // Current server's entity
+var serverName ;               // Current server's name
+var networks   = {};           // All networks instances
 
 // Define #terminal as a terminal
 var term = $('#terminal').terminal(function(cmd, term) {
@@ -499,8 +599,6 @@ if(!is_save) {
 } else {
   // Restore variables
   vars = save.vars;
-  // Initialize the server
-  server.import(save.server);
   // Fix a bug with jQuery.terminal plugin
   save.view.interpreters = term.export_view().interpreters;
   // Import view...
@@ -529,6 +627,7 @@ var scope = {
     dontRecoverPrompt = true;
     question(game.getVar('ALLOW_TRANSLATION') ? tr(msg) : msg, function(answer) {
       // Question callback
+      term.set_prompt(''); // Improving prompt
       game.setVar('answer', answer);
       dontRecoverPrompt = null;
       go();
@@ -546,6 +645,7 @@ var scope = {
 
     choice(arguments, function(answer) {
       // Choice callback
+      term.set_prompt(''); // Improving prompt
       dontRecoverPrompt = null;
       term.echo(' ');
       game.setVar('answer', answer);
@@ -558,6 +658,7 @@ var scope = {
     term.echo(' ');
     confirm(game.getVar('ALLOW_TRANSLATION') ? tr(msg) : msg, function(answer) {
       // Confirm callback
+      term.set_prompt(''); // Improving prompt
       dontRecoverPrompt = null;
       term.echo(' ');
       game.setVar('answer', answer);
@@ -688,14 +789,14 @@ vars.scope = scope;
 // Define some callbacks
 var afterCommand, catchCommand, keydownCallback;
 // Load game
-var serverGame, game, didSomethingAfterSave = false, HSF_files = {};
+var haskier, game, didSomethingAfterSave = false, HSF_files = {}, commands = {}, serversCommands = {};
 
 $.ajax({
   url     : 'com/get-game.run',
   dataType: 'json',
   cache   : false,
   success : function(data) {
-    serverGame = data;
+    haskier = data;
 
     // Parse all scenaristic files
     var filenames = Object.keys(data.hsf);

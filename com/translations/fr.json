@@ -14,6 +14,8 @@
   "Create a folder": "Crée un dossier",
   "Manage the communication services": "Gère les services de communication",
   "Manage the firewall": "Gère le pare-feu",
+  "Get a web page's content": "Récupére le contenu d'une page web",
+  "Make a web server to share files": "Crée un serveur web pour le partage de fichiers",
 
   "New name": "Nouveau nom",
   "Variable's name": "Nom de la variable",
@@ -30,6 +32,9 @@
   "Folder's path": "Chemin du dossier",
   "${cyan:open} Open the port, ${cyan:close} Close the port": "${cyan:open} Ouvre le port, ${cyan:close} Ferme le port",
   "${cyan:enable} Enable the firewall, ${cyan:disable} Disable the firewall": "${cyan:enable} Active le pare-feu, ${cyan:disable} Désactive le pare-feu",
+  "File's URL": "URL du fichier",
+  "Server's IP if you want to connect to a server. Then, remove the prefix ${grey:xxx://}": "Adresse IP du serveur si vous souhaitez vous connecter à un serveur précis. Omettez alors le préfixe ${grey:xxx://}",
+  "Port to use. If omitted, use the port 80.": "Numéro du port à utiliser. Si omis, utilise le port 80.",
 
   "command not found : ${cmd}": "commande non trouvée : ${cmd}",
   "A bug has been detected. Would you like to report it ?\n\nDetails :\n${err}\n\n${vars}": "Un bug a été détecté. Voulez-vous le reporter ?\n\nDétails :\n${err}\n\n${vars}",
@@ -50,6 +55,9 @@
   "This is a file. To remove it, remove the -f option.": "Ceci est un fichier. Pour le supprimer, enlevez l'option -f.",
   "Folder is not empty. To remove it, use -r option.": "Le dossier n'est pas vide. Pour le supprimer, utilisez l'option -r.",
   "Failed to remove file": "Impossible de supprimer le fichier",
+  "Failed to load game. Please try later.": "Impossible de charger les données de jeu. Veuillez réessayer plus tard.",
+  "Game has stopped because of a fatal error": "Le jeu a été stoppé à cause d'une erreur",
+  "Bad network interface": "Mauvaise interface réseau",
 
   "Directory not found": "Le dossier n'existe pas",
   "Directory is not empty": "Le dossier n'est pas vide",
@@ -64,6 +72,9 @@
   "The information bar has been hidden": "La barre d'information a été masquée",
   "The information bar has been unhidden": "La barre d'information est affichée",
   "This command does not accept any parameter": "Cette commande n'accepte aucun paramètre",
+  "Starting up the servers...": "Démarrage des serveurs...",
+  "Starting up server ${num} of ${total}...": "Démarrage du serveur ${num} sur ${total}...",
+  "Preparing networks...": "Préparation des réseaux...",
 
   "Missing argument \"${name}\"": "Il manque l'argument \"${name}\"",
   "Missing argument -${short}|--${long}": "L'argument -${short}|--${long} est manquant",
@@ -73,6 +84,15 @@
   "Answer must be a number": "Veuillez saisir un nombre valide",
   "Bad answer": "Veuillez saisir une valeur valide",
   "Please type `${yes_key}` or `${no_key}`": "Veuillez saisir `${yes_key}` ou `${no_key}`",
+  "Bad IP adress was specified": "L'adresse IP spécifiée n'est pas valide",
+  "VAMPP server is already running": "Le serveur VAMPP est déjà en cours d'exécution",
+  "Requested file was not found": "Le fichier demandé n'existe pas",
+  "Connecting to server...": "Connection au serveur...",
+  "Failed to connect to server": "La connection au serveur a échouée",
+  "VAMPP server is now running": "Le serveur VAMPP est maintenant en cours d'exécution",
+  "VAMPP server mouting has failed": "Le montage du serveur VAMPP a échoué",
+  "Error: Server returned status ${status}": "Erreur: Le serveur a retourné le code d'erreur ${status}",
+  "Specified URL is not valid": "L'URL que vous avez spécifiée n'est pas valide",
 
   "y-n": "o-n",
   "Your choice [1-${end}] ?": "Votre choix [1-${end}] ?",
@@ -82,5 +102,8 @@
   "closed": "fermé",
   "Firewall": "Le pare-feu a été",
   "enabled": "activé",
-  "disabled": "désactivé"
+  "disabled": "désactivé",
+
+  "Your computer is not connected to hypernet": "Votre ordinateur n'est pas connecté à hypernet",
+  "This server doesn't exist or isn't connected to hypernet": "Ce serveur n'existe pas ou n'est pas connecté à hypernet"
 }

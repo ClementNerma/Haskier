@@ -1,6 +1,21 @@
 'use strict';
 
-var commands = {
+/**
+  * Some helpful regex
+  * @type {object}
+  */
+var RegexCollection = {
+  IP           : /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/,
+  boolean      : /^true|false$/,
+  AlphaNumeric : /^[a-zA-Z0-9_]$/,
+  AlphaNumeric_: /^[a-zA-Z0-9_]+$/
+};
+
+/**
+  * Commands that are common to ALL servers
+  * @type {object}
+  */
+var _commands = {
   echo: {
     legend   : tr('Display a text'),
     arguments: [],
@@ -25,7 +40,7 @@ var commands = {
       {
         _       : 'name',
         legend  : tr('New name'),
-        regex   : /^([a-zA-Z0-9_]+)$/,
+        regex   : RegexCollection.AlphaNumeric_,
         required: true
       }
     ],

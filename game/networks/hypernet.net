@@ -1,0 +1,2 @@
+(home|about|infos) 127.32.47.53 $1.xms
+(.*) 127.32.47.53 error.xms

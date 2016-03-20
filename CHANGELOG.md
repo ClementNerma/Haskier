@@ -1,3 +1,28 @@
+Su 20-03-2016
+Haskier a-0.6
+- Added multi-servers support
+- Added multi-backups support
+- Added custom apps support
+- Added installable commands support
+- Added events for servers
+- Added `response` classe for servers' requests
+- Added networks support
+- Servers can run a HSS (Haskier Shell Script) at startup (needed for VAMPP)
+
+*** === Misc === ***
+- Added Server.importJSON  () function
+- Added Server.exportJSON  () function
+- Added Server.importFolder() function
+- Added Server.exportFolder() function
+- Added Server.generateId  () function
+- Added Server.id          () function
+- Improved prompt for HSF
+
+*** === Bug fixes === ***
+- Fixed a bug with HSF.Script.getLabelMarker() which was moving current line
+- Fixed a bug with commands because clone() function didn't work correctly with Arrays
+- Fixed a bug with Server.removeTree() which didn't remove entries from files table
+
 Sa 19-03-2016
 Haskier a-0.5
 - Added asynchrounous functions support for HSF

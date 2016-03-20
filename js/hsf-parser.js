@@ -283,11 +283,11 @@ var HSF = (new (function() {
 
       for(var j = 0; j < code.length; j++) {
         if(code[j].label && code[j].label === name) {
-          i = j; f = true; break;
+          f = j; break;
         }
       }
 
-      if(i === j && i < code.length - 1)
+      if(f === j)
         return code[j].marker;
       else
         return false;
