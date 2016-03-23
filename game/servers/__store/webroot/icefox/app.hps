@@ -13,10 +13,15 @@ register('icefox', {
       legend  : tr('Server\'s IP if you want to connect to a server. Then, remove the prefix ${grey:xxx://}'),
       regex   : RegexCollection.IP,
       error   : tr('Bad IP adress was specified')
+    },
+    {
+      short   : 'd',
+      long    : 'download',
+      legend  : tr('Download location. If omitted, will just display the file.')
     }
   ],
   async    : true,
-  callback : function(url, IP, resolve) {
+  callback : function(url, IP, dw, resolve) {
     if(!server.network('hypernet')) // ... is not a function
       return display_error(tr('Your computer is not connected to hypernet'));
 
@@ -36,36 +41,27 @@ register('icefox', {
       url = parsed.url;
     }
 
-    var length = 12, prompt = '.';
-    term.set_prompt(prompt);
+    var content = '', eq, barSize = 50;
+    term.set_prompt('[' + ' '.repeat(barSize) + '] 0%');
 
-    var blink = setInterval(function() {
-      if(prompt.length === length)
-        prompt = '.';
-      else
-        prompt += '.';
-
-      term.set_prompt(prompt);
-    }, 500);
-
-    var error = servers[IP].request({
-      url    : url,
-      headers: {},
-      network: 'hypernet',
-      client : serverName,
-      port   : 80
-    }, function(response) {
-      clearInterval(blink);
-
-      if(response.headers.code === 200)
-        resolve(response.content);
-      else
-        resolve('${red:' + tr('Error: Server returned status ${status}', [response.headers.code]) + '}\n${red:' + response.content + '}');
+    server.download({
+      url     : url,
+      IP      : IP ,
+      progress: function(progress) {
+        term.set_prompt('[' + '='.repeat(eq = Math.floor(progress * barSize)) + ' '.repeat(barSize - eq) + '] ' + Math.floor(progress * 100) + '%');
+      },
+      error   : function(err) {
+        resolve('${red:' + err.split('\n').join('}\n${red:') + '}');
+      },
+      success : function(content) {
+        if(dw) {
+          if(!server.writeFile(typeof dw === 'string' ? dw : url.split(/\//)[url.split(/\//).length - 1], content))
+            resolve('${red:' + tr('Unable to write the download\'s location') + '}');
+          else
+            resolve(tr('Download has finished successfully'));
+        } else
+          resolve(content);
+      }
     });
-
-    if(error) {
-      clearInterval(blink);
-      resolve('${red:' + tr('Failed to connect to server') + '}\n${red:' + tr(error) + '}');
-    }
   }
 });

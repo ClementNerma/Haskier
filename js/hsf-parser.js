@@ -18,6 +18,10 @@ var HSF = (new (function() {
       if(line.length && line.substr(0, 2) !== '//' && line.substr(0, 2) !== '/*') {
         if(match = line.match(/^#include *\( *"([a-zA-Z0-9_\.\-]+)" *\)$/))
           out.push({include: match[1]});
+        else if(match = line.match(/^: *([a-zA-Z0-9_]+) *\[(.*)\]$/))
+          out.push({label: match[1], data: match[1]});
+        else if(match = line.match(/^: *([a-zA-Z0-9_]+) *(\-|=)> *(.*) *\[(.*)\]$/))
+          out.push({label: match[1], marker: match[3], data: match[4]});
         else if(match = line.match(/^: *([a-zA-Z0-9_]+)$/))
           out.push({label: match[1]});
         else if(match = line.match(/^: *([a-zA-Z0-9_]+) *(\-|=)> *(.*)$/))
@@ -106,7 +110,7 @@ var HSF = (new (function() {
           // If there is a #label catcher
           if(events.label)
             // Call it
-            events.label(code[i].label, code[i].marker, i, code);
+            events.label(code[i].label, code[i].marker, code[i], i, code)
 
           // Store in memory the label's name
           _label = code[i].label;
@@ -191,7 +195,7 @@ var HSF = (new (function() {
         _label = code[i].label;
 
         if(events.label)
-          events.label(code[i].label, code[i].marker, i, code);
+          events.label(code[i].label, code[i].marker, code[i], i, code)
       }
     };
 
@@ -224,11 +228,11 @@ var HSF = (new (function() {
         }
       }
 
-      if(i === j && i < code.length - 1) {
+      if(f) {
         _label = code[j].label;
 
         if(events.label)
-          events.label(code[j].label, i, code[i]);
+          events.label(code[j].label, code[j].marker, code[j], j, code);
 
         return true;
       } else
@@ -263,11 +267,11 @@ var HSF = (new (function() {
         }
       }
 
-      if(i === j && i < code.length - 1) {
+      if(f) {
         _label = name;
 
         if(events.label)
-          events.label(name, code[j].marker, i, code[i]);
+          events.label(code[j].label, code[j].marker, code[j], j, code)
 
         return true;
       } else return false;

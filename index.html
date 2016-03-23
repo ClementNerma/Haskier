@@ -10,14 +10,19 @@
 </head>
 <body>
   <div id="terminal"></div>
+  <div id="clock"></div>
   <!--<div id="infos"></div>!-->
   <!--<div id="cover"></div>!-->
-  <div id="fullscreen_trigger">Fullscreen</div>
+  <!--<div id="fullscreen_trigger">Fullscreen</div>!-->
   <!-- Load libraries !-->
   <script type="text/javascript" src="js/lib/jquery-2.2.1.min.js"></script>
   <script type="text/javascript" src="js/lib/jquery.terminal.min.js"></script>
   <script type="text/javascript" src="js/lib/minimist.js"></script>
+  <script type="text/javascript" src="js/lib/date/date.js"></script>
+  <script type="text/javascript" src="js/lib/date/core.js"></script>
+  <script type="text/javascript" src="js/lib/date/parser.js"></script>
   <!-- Load game files !-->
+  <script type="text/javascript">var _confirm = confirm;</script>
   <script type="text/javascript" src="js/tests.js"></script>
   <script type="text/javascript" src="js/comm.js"></script>
   <script type="text/javascript" src="js/translate.js"></script>
@@ -25,6 +30,7 @@
   <script type="text/javascript" src="js/network.js"></script>
   <script type="text/javascript" src="js/server.js"></script>
   <script type="text/javascript" src="js/hsf-parser.js"></script>
+  <script type="text/javascript" src="js/hsf-scope.js"></script>
   <script type="text/javascript" src="js/haskier.js"></script>
 
   <script type="text/javascript">
@@ -32,7 +38,7 @@
     function r()  { localStorage.clear(); window.location.reload();    }
     function b(f) { var d; d = Date.now(); f(); return Date.now() - d; }
     function l(n) { var r = JSON.parse(localStorage.getItem('haskier')); return n ? r[n] : r; }
-    function u(n) { var r = server.importFolder({folder:haskier.servers.__store.webroot[n],table:{},path:'/webroot/' + n}, 'apps/' + n); saveGame(); return r; }
+    function u(n,s) { var l;if(s){l=serverName;server=servers[s];}var r=server.importFolder({folder:haskier.servers.__store.webroot[n],table:{},path:'/webroot/'+n},'apps/'+n);if(r){saveGame();startApp(n);}if(l){server=servers[l];}return r; }
   </script>
 </body>
 </html>

@@ -5,5 +5,9 @@
         "password": "poksdf°09Z489ç-zrzà_[#zeproie[e{#qpoi]sdepoi@é}]]"
     },
     "ssh": false,
-    "networks": ["hypernet"]
+    "networks": {
+      "hypernet": {
+        "speed": 1024
+      }
+    }
 }

@@ -1,3 +1,34 @@
+We 23-03-2016
+Haskier a-0.7
+- Added multi-parts transfers
+- Added networks bandwidth
+- Improved auto-completion feature (smart arguments, no new line...)
+- Disabled auto-save backup for each label, now auto-save only on checkpoints
+- Game can now be won or lost => Added `gameWon` and `gameOver` HSF commands
+- Added shell filters feature
+- Added filters : `with`
+- Created new command-line parser, because jQuery.terminal's one didn't support escaping \\ char and was parsing regex
+- Added redirection flux ('>' operator for output, '<' operator for input)
+- Added `cpm` tool (CenturyCode Package Manager)
+
+*** === Misc === ***
+- Added `tree` command
+- Added data attachment for HSF labels
+- Added game clock (top right corner), including locale formatting
+- Removed fullscreen trigger button
+- Improved `ui` command
+- Added `restart` command which restart the game (reload the web page)
+- Added Server.download() function
+- Improved VAMPP and IceFox applications
+
+*** === Bug fixes === ***
+- MAJOR Fixed bug : When page is refreshed two times without typing any command, progression is lost
+- Fixed bug with `label` event in HSF Parser
+- Fixed bug with translation which doesn't allow unknown variables
+- Fixed bug with `clear` command which was not runned when this command was typed on the terminal
+- Fixed bug with the `report_bug()` function which didn't work
+- Fixed bug with Server.request.end() which was sending an Infinity of packages when the content size was zero bytes
+
 Su 20-03-2016
 Haskier a-0.6
 - Added multi-servers support

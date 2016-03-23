@@ -21,7 +21,21 @@ register('vampp', {
         response.content = tr('Requested file was not found');
       } else {
         response.headers['code'] = 200;
-        response.content = file.substr(file.length - 4, 4) === '.xms' ? server.readFile(file) : jQuery.terminal.escape_formatting(server.readFile(file)).replace(/{/g, '&#123;').replace(/}/g, '&#125;');
+        //response.content = file.substr(file.length - 4, 4) === '.xms' ? server.readFile(file) : fescape(server.readFile(file));
+        var content = server.readFile(file);
+
+        if(typeof content === 'string' && file.substr(file.length - 4, 4) === '.xms') {
+          response.content = content.replace(/<%((.|\n)*?)%>/g, function(match, script) {
+            var out = [];
+            (new Function(['request', 'response', 'server', 'echo'], script))(request, response, server, function(text) { out.push(text); });
+            return out.join('\n');
+          });
+        }
+
+        if(typeof content !== 'string') {
+          response.headers['code'] = 500;
+          response.content = tr('Internal server error');
+        }
       }
 
       response.end();

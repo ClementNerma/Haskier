@@ -4,5 +4,10 @@
         "identifier": "$master",
         "password": "m@st€rP@ssw0rd"
     },
-    "networks": ["hypernet", "__local_Shaun"]
+    "networks": {
+      "hypernet": {
+        "speed": 16
+      },
+      "__shaun": {}
+    }
 }

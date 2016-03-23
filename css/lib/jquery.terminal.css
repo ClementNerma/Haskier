@@ -80,7 +80,8 @@
 }
 .terminal .terminal-output div div, .cmd .prompt {
     display: block;
-    line-height: 14px;
+    /*line-height: 14px;*/
+    line-height: 115%;
     height: auto;
 }
 .cmd .prompt {
@@ -91,7 +92,8 @@
     color: #fff;
     background-color: #283137;
     font-size: 12px;
-    line-height: 14px;
+    /*line-height: 14px;*/
+    line-height: 115%;
 }
 .terminal-output > div {
     /*padding-top: 3px;*/

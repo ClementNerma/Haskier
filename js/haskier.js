@@ -2,15 +2,18 @@
 
 // TODO: FIXBUG: When refresh page two times, progression is reset
 
-var hidden = $('#terminal, #fullscreen_trigger').hide(),
+var hidden = $('#terminal, #clock').hide(),
   dontRecoverPrompt = false, hsf_conds = [], todo = [], justRestored = false, justRestoredLabel = false,
-  ignoreKeys = false;
+  ignoreKeys = false, gameStarted = false, clock, clockInterval, clockRefresh, cmd_out = [], buff_out = [],
+  redirection = false, fastMode = !!location.search.match(/(\?|&)fastmode=true(&|$)/);
 
-/*const*/var readingLineDuration = 50;
-const backup_prefix = 'hbak_auto_';
+/*const*/
+var   readingLineDuration = 50;
+var   humanSpeed          = 80;
+const backup_prefix       = 'hsk_arch_';
 
 //var clone=function(t){var r=new Array,e=function(t){if("undefined"!=typeof Object.getPrototypeOf)return Object.getPrototypeOf(t);var r=new Object;return"undefined"!=typeof t.__proto__&&"undefined"!=typeof r.__proto__&&r.__proto__===Object.prototype?t.__proto__:"undefined"!=typeof t.constructor&&"undefined"!=typeof r.constructor&&r.constructor===Object&&"undefined"!=typeof t.constructor.prototype?t.constructor.prototype:Object.prototype},o=function(t){if("object"!=typeof t)return t;if(null===t)return null;for(var n=0;n<r.length;n++)if(r[n][0]===t)return r[n][1];if(Array.isArray(t)){var p=[];p.prototype=e(t),r.push([t,p]);for(var f in t)p[f]=o(t[f])}else{var u=new Function;u.prototype=e(t);var p=new u;r.push([t,p]);for(var c in t)t.hasOwnProperty(c)&&(p[c]=o(t[c]))}return p};return o(t)};
-var clone = (new Server()).clone;
+var clone = (new Server('@model')).clone;
 
 /**
   * Start the game !
@@ -20,12 +23,19 @@ function ready() {
 
   hidden.show();
 
-  game.event('label', function(name) {
+  clock = save.clock ? new Date(save.clock) : Date.parse('03/07/2016 19:10:00');
+
+  game.event('label', function(name, marker, step) {
     if(game.getVar('FREEZE_UNTIL_TODO'))
       game.setVar('dont_update_prompt', true);
 
     if(!justRestoredLabel) {
-      saveGame(); // useless ?
+      saveGame();
+
+      if(step.data === 'checkpoint') {
+        var err = backupSave();
+        if(err) console.error(err);
+      }
     } else
       justRestoredLabel = false;
   });
@@ -57,7 +67,8 @@ function ready() {
 
   for(var i = 0; i < names.length; i++) {
     name = names[i];
-    servers[name] = new Server();
+    //servers[name] = new Server();
+    (new Server(name));
 
     if(save.servers && save.servers[name])
       servers[name].import(save.servers[name]);
@@ -83,13 +94,10 @@ function ready() {
     apps = servers[names[i]].glob('apps/*/app.hps');
     serversCommands[names[i]] = clone(_commands);
 
-    for(j = 0; j < apps.length; j++)
-      (new Function(['server', 'register'], servers[names[i]].readFile(apps[j].path))).apply(window, [servers[names[i]], function(name, command) {
-        if(typeof command.legend !== 'string' || !Array.isArray(command.arguments) || typeof command.callback !== 'function')
-          fatal('Can\'t register invalid command "' + name + '"');
+    //startApp(apps[j].vars[0], names[i]);
 
-        serversCommands[names[i]][name] = command;
-      }]);
+    for(j = 0; j < apps.length; j++)
+      startApp(apps[j].vars[0], names[i]);
 
     if(servers[names[i]].fileExists('/user/init.hss')) {
       updateServer(names[i]);
@@ -105,18 +113,48 @@ function ready() {
   console.info('All servers were started !');
 
   display(tr('Preparing networks...'));
+  console.info('Preparing networks...');
 
   names = Object.keys(haskier.networks);
 
   for(var i = 0; i < names.length; i++)
     networks[names[i].substr(0, names[i].lastIndexOf('.'))] = new Network(haskier.networks[names[i]]);
 
+  /* Clock setup */
+
+  clockRefresh = function() {
+    $('#clock').text(clock.toString('d') + ' ' + clock.toString('t'));
+  };
+
+  setTimeout(function() {
+    setInterval(clockRefresh, 60 * 1000);
+  }, ((60 - clock.getSeconds()) * 1000));
+  clockRefresh();
+
   term.clear();
   updateServer(save.server || '__local');
+  updateUI();
 
-  console.info('Gamed started in ' + (Date.now() - started) + ' ms');
+  gameStarted = true;
+  console.info('Game started in ' + (Date.now() - started) + ' ms');
 
   go();
+}
+
+/**
+  * Start an app on a server
+  * @param {string} app
+  * @param {string} [serverName]
+  */
+function startApp(app, serverName) {
+  var _server = serverName ? servers[serverName] : server;
+
+  (new Function(['server', 'register'], _server.readFile('/apps/' + app + '/app.hps'))).apply(window, [_server, function(name, command) {
+    if(typeof command.legend !== 'string' || !Array.isArray(command.arguments) || typeof command.callback !== 'function')
+      fatal('Can\'t register invalid command "' + name + '"');
+
+    serversCommands[serverName || '__local'][name] = command;
+  }]);
 }
 
 /**
@@ -151,15 +189,37 @@ function saveGame() {
       time    : (new Date()).getTime(),
       data    : save.data,
       servers : _servers,
+      clock   : clock.getTime(),
       server  : serverName,
       scope   : game.diffScope(),
       label   : game.label(),
       marker  : game.marker(),
       dsas    : didSomethingAfterSave
     }));
+  }
 
-    // Backup the previous save
-    if(lastSave && localStorageFree() > lastSave.length + 16) {
+  catch(e) {
+    alert(tr('Failed to save game. Please try again. If that doesn\'t work, type `force-save` in the terminal and press Return.'));
+    console.error('Failed to save game\n' + e.stack);
+  }
+
+  vars.scope = scope;
+}
+
+/**
+  * Backup the current save
+  * @param {boolean} [allowDeletingOlder] Default: false
+  * @return {string|void} String = error message (translated)
+  */
+function backupSave(allowDeletingOlder) {
+  // Backup the previous save
+  var lastSave = localStorage.getItem('haskier');
+
+  if(!lastSave)
+    return false;
+
+  try {
+    if(localStorageFree() > lastSave.length + 16) {
       var id = 1, name;
 
       while(localStorage.getItem(name = backup_prefix + id))
@@ -167,7 +227,10 @@ function saveGame() {
 
       try { localStorage.setItem(name, lastSave); }
       catch(e) { console.error('Failed to backup last Haskier save\n' + e.stack); }
-    } else if(lastSave) {
+    } else {
+      if(!allowDeletingOlder)
+        return tr('There is not enough space to backup save without deleting older ones');
+
       // If there is not enough memory to backup the last save
       var keys = Object.keys(localStorage), backups = [], taken = 0;
 
@@ -190,23 +253,22 @@ function saveGame() {
         }
 
         console.info(i + ' backups were deleted to make free space for backuping the last save (' + (lastSave.length / 1024).toFixed(1) + ' Kb)');
-        try { localStorage.setItem(backup_prefix + (parseInt(backups[backups.length - 1]) + 1), lastSave); }
-        catch(e) { console.error('Failed to backup last Haskier save\n' + e.stack); }
+        try { localStorage.setItem(backup_prefix + (parseInt(backups[backups.length - 1]) + 1), lastSave); return ; }
+        catch(e) { console.error('Failed to backup last Haskier save\n' + e.stack); return tr('Failed to backup save'); }
       } else {
         if(backups.length)
-          console.warn('There is no enough total space to backup last save');
+          return tr('There is no enough total space to backup save');
         else
-          console.warn('Even if deleting ' + backups.length + ' backups, there is not enough space to backup last save');
+          return tr('Even if deleting ${num} backups, there is not enough space to backup save', [backups.length]);
       }
     }
   }
 
   catch(e) {
-    alert(tr('Failed to save game. Please try again. If that doesn\'t work, type `force-save` in the terminal and press Return.'));
     console.error('Failed to save game\n' + e.stack);
+    report_bug('')
+    return false;
   }
-
-  vars.scope = scope;
 }
 
 /**
@@ -233,14 +295,35 @@ function asPlain(value) {
 }
 
 /**
+  * Make a regex from a string
+  * @param {string} str Like : /my (friend|boy)/igm
+  * @return {RegExp|string}
+  */
+function makeRegex(str) {
+  if(str.substr(0, 1) !== '/')
+    return tr('Missing opening slash');
+
+  var ls /* last slash */ = str.lastIndexOf('/');
+
+  if(ls <= 0)
+    return tr('Missing closing slash');
+
+  var flags = str.substr(ls + 1), content = str.substr(1, ls - 1);
+
+  try      { return new RegExp(content, flags); }
+  catch(e) { return e.message; }
+}
+
+/**
   * Run a command
   * @param {string} cmd
+  * @param {*} [add] Additionnal data
   */
-function command(cmd) {
+function command(cmd, add) {
   if(!cmd)
     return ;
 
-  queue.push(cmd);
+  queue.push([cmd, add]);
 
   if(!runningCmd)
     treatQueue();
@@ -258,23 +341,24 @@ function treatQueue() {
 
   ignoreKeys = true; //term.pause(); // $('#cover').show(); -> doesn't work better
 
-  var cmd    = queue.splice(0, 1)[0];
-  runningCmd = true;
+  var entry  = queue.splice(0, 1)[0];
+  var cmd    = entry[0], add = entry[1];
+
+  ignoreKeys = true;
 
   exec(cmd, function(text) {
-    if(typeof text !== 'undefined')
-      display(text);
-
-    updatePrompt();
-
     ignoreKeys = false; //term.resume(); // $('#cover').hide(); -> doesn't work better
-    runningCmd = false;
-    didSomethingAfterSave = true;
-    saveGame();
+
+    if(gameStarted) {
+      updatePrompt();
+
+      didSomethingAfterSave = true;
+      saveGame();
+    }
 
     if(queue.length)
       treatQueue();
-    else if(todo.length) {
+    else if(todo.length && gameStarted) {
       // Here, we've wait queue is empty to check if todo is accomplished
       // And because condition contains 'todo.length' we know that todo list is not empty
 
@@ -288,7 +372,7 @@ function treatQueue() {
       if(!todo.length)
         go();
     }
-  });
+  }, add);
 }
 
 /**
@@ -336,7 +420,8 @@ function prepareArguments(args, expected) {
       prepare.push(args[arg.long]);
     }
 
-    if((arg.regex && typeof prepare[prepare.length - 1] !== 'undefined' && !arg.regex.test(asPlain(prepare[prepare.length - 1])))
+    if((arg.regex && typeof prepare[prepare.length - 1] !== 'undefined' && typeof prepare[prepare.length - 1] !== 'string')
+    || (arg.regex && typeof prepare[prepare.length - 1] !== 'undefined' && !arg.regex.test(asPlain(prepare[prepare.length - 1])))
     || (arg.check && typeof prepare[prepare.length - 1] !== 'undefined' && !arg.check(prepare[prepare.length - 1]))) {
         return arg.error || tr('Bad value was specified for argument ${arg}', [
           arg.short && arg.long ? '-' + arg.short + '|--' + arg.long :
@@ -354,15 +439,97 @@ function prepareArguments(args, expected) {
   * Execute a command without queue
   * @param {string} cmd
   * @param {function} [callback]
+  * @param {*} [add] Additionnal data
   */
-function exec(cmd, callback) {
-  var prepare;
+function exec(cmd, callback, add) {
+  var prepare, filter, filter_name, tmp, symbol, file, input;
+  runningCmd = true;
+  callback   = callback || function(){};
+
+  // If the '>' symbol is present within the command
+  if((symbol = cmd.indexOf('>')) !== -1) {
+    // Check it's not between quotes
+    file   = cmd.substr(cmd.indexOf('>') + 1);
+    tmp    = cmd.substr(0, symbol - 1);
+    tmp    = tmp.split('"').length / 2 - 0.5;
+
+    // If there is the same number of double quotes before the redirection symbol...
+    if(Math.floor(tmp) !== tmp)
+      // Then that's not a file's name
+      file = '';
+    else {
+      // We modify the typed command
+      cmd  = cmd.substr(0, symbol - 1).trim();
+      file = file.trim();
+    }
+  }
+
+  // If the '>' symbol is present within the command
+  if((symbol = cmd.indexOf('<')) !== -1) {
+    // Check it's not between quotes
+    input  = cmd.substr(cmd.indexOf('<') + 1);
+    tmp    = cmd.substr(0, symbol - 1);
+    tmp    = tmp.split('"').length / 2 - 0.5;
+
+    // If there is the same number of double quotes before the redirection symbol...
+    if(Math.floor(tmp) !== tmp)
+      // Then that's not a file's name
+      input = '';
+    else {
+      // We modify the typed command
+      cmd   = cmd.substr(0, symbol - 1).trim();
+
+      // That's so bad but we have to delete the original 'add' content.
+      // Normally that's not a problem because $add has a value only when using a filter...
+      add = server.readFile(input.trim());
+
+      if(typeof add !== 'string') {
+        runningCmd = false;
+        display_error(tr('Failed to read ${input} as input file', [input]));
+        callback();
+        return ;
+      }
+    }
+  }
+
+  // If the '|' symbol is present within the command
+  if((symbol = cmd.indexOf('|')) !== -1) {
+    // Check it's not between quotes
+    filter = cmd.substr(cmd.indexOf('|') + 1);
+    tmp    = cmd.substr(0, symbol - 1);
+    tmp    = tmp.split('"').length / 2 - 0.5;
+
+    // If there is the same number of double quotes before the filter symbol...
+    if(Math.floor(tmp) !== tmp)
+      // Then that's not a filter
+      filter = '';
+    else {
+      // We modify the typed command
+      cmd    = cmd.substr(0, symbol - 1).trim();
+      filter = filter.trim(); filter_name = filter.split(' ')[0];
+
+      if(!commands.hasOwnProperty(filter_name)) {
+        runningCmd = false;
+        display_error(tr('filter not found : ${filter}', [filter_name]));
+        callback();
+        return ;
+      }
+
+      if(!commands[filter_name].inputflux) {
+        runningCmd = false;
+        display_error(tr('${filter} is not a filter', [filter]));
+        callback();
+        return ;
+      }
+    }
+  }
 
   callback = callback || function(){};
   cmd      = parseCommand(cmd);
 
   if(!commands.hasOwnProperty(cmd.$)) {
-    display('${red:' + tr('command not found : ${cmd}', [cmd.$]) + '}');
+    runningCmd = false;
+    display_error(tr('command not found : ${cmd}', [cmd.$]));
     callback();
     return ;
   }
@@ -371,6 +538,7 @@ function exec(cmd, callback) {
 
   // TODO : Display the exact problem
   if(typeof (prepare = prepareArguments(cmd, call.arguments)) === 'string') {
+    runningCmd = false;
     display('${red:' + tr('bad syntax for command `${cmd}` : ${err}', [cmd.$, prepare]) + '}');
     callback();
     return ;
@@ -381,17 +549,109 @@ function exec(cmd, callback) {
     // Remove prompt
     term.set_prompt('');
     // Add the resolver callback
-    prepare.push(callback);
+    prepare.push(function(text) {
+      if(typeof text !== 'undefined')
+        display(text);
+
+      runningCmd = false;
+
+      if(filter) {
+        if(file) {
+          buff_out = clone(cmd_out);
+          outputFilter = function(txt) { buff_out.push(txt); };
+          exec(filter, function() {
+            outputFilter = false;
+            server.writeFile(file, buff_out.join('\n'));
+            callback();
+          }, cmd_out.join('\n'));
+        } else {
+          outputFilter = false;
+          exec(filter, null, cmd_out.join('\n'));
+          callback.apply(this, arguments);
+        }
+      } else if(file) {
+        outputFilter = false;
+        server.writeFile(file, cmd_out.join('\n'));
+        callback.apply(this, arguments);
+      } else
+        callback.apply(this, arguments);
+    });
   }
 
   prepare.push(cmd);
+
+  if(add)
+    cmd.$add = add;
+
+  if(filter || file) {
+    cmd_out = [];
+    outputFilter = function(txt) { cmd_out.push(txt); };
+  }
 
   call.callback.apply(call, prepare);
 
   if(!call.async) {
     runningCmd = false;
-    callback();
+
+    if(filter) {
+      if(file) {
+        buff_out = clone(cmd_out);
+        outputFilter = function(txt) { buff_out.push(txt); };
+        exec(filter, function() {
+          outputFilter = false;
+          server.writeFile(file, buff_out.join('\n'));
+          callback.apply(this, arguments);
+        }, cmd_out.join('\n'));
+      } else {
+        outputFilter = false;
+        exec(filter, callback, cmd_out.join('\n'));
+      }
+    } else if(file) {
+      outputFilter = false;
+      server.writeFile(file, cmd_out.join('\n'));
+      callback.apply(this, arguments);
+    } else
+      callback.apply(this, arguments);
   }
+}
+
+/**
+  * Separe command and arguments
+  * @param {string} cmd
+  * @return {object}
+  */
+function parseLine(cmd) {
+  var args = [], readingPart = false, part = '', escaping = false, i, index = cmd.indexOf(' '),
+      str  = (index === -1 ? '' : cmd.substr(index + 1)), base = (index === -1 ? cmd : cmd.substr(0, index));
+
+  for(i = 0; i < str.length; i++) {
+    if(escaping) {
+      escaping = false;
+      part    += str.charAt(i);
+      continue ;
+    }
+
+    if(str.charAt(i) === ' ' && !readingPart) {
+      args.push(part);
+      part = '';
+    } else {
+      if(str.charAt(i) === '"')
+        readingPart = !readingPart;
+      else if(str.charAt(i) === '\\')
+        escaping = true;
+      else
+        part += str.charAt(i);
+    }
+  }
+
+  if(part.length)
+    args.push(part);
+
+  return {
+    name: base,
+    args: args,
+    rest: str
+  };
 }
 
 /**
@@ -400,7 +660,8 @@ function exec(cmd, callback) {
   * @return {object}
   */
 function parseCommand(cmd) {
-  var parse = jQuery.terminal.parseCommand(cmd);
+  //var parse = jQuery.terminal.parseCommand(cmd);
+  var parse = parseLine(cmd);
 
   if(parse.args.length)
     parse.args = minimist(parse.args);
@@ -417,6 +678,14 @@ function parseCommand(cmd) {
 function updateUI() {
   updatePrompt();
   $('.terminal, .cmd').css('font-family', (save.data.font ? save.data.font + ', ' : '') + 'Consolas, Courier, "Inconsolata"');
+
+  if(save.data.lineWaiting)
+    readingLineDuration = save.data.lineWaiting;
+
+  if(save.data.writingSpeed)
+    humanSpeed = save.data.writingSpeed;
+
+  if(fastMode) { readingLineDuration = humanSpeed = 0; }
   //$('#infos')[save.data.showInfobar ? 'show' : 'hide']();
 }
 
@@ -441,7 +710,6 @@ function updateServer(name) {
 var queue      = [];           // Commands' queue
 var runningCmd = false;        // Is running a command ?
 var vars       = {};           // All shell variables
-var servers    = {};           // Servers entities
 var server     ;               // Current server's entity
 var serverName ;               // Current server's name
 var networks   = {};           // All networks instances
@@ -466,7 +734,7 @@ var term = $('#terminal').terminal(function(cmd, term) {
       //if(ret === true)
         dontRecoverPrompt = false;
 
-      if(!catchCommand)
+      if(!catchCommand && ret === true)
         // We recover the catcher
         catchCommand = callback;
     }
@@ -477,7 +745,9 @@ var term = $('#terminal').terminal(function(cmd, term) {
   greetings    : '',
   name         : 'haskier-terminal',
   prompt       : '$ ',
-  tabcompletion: true,
+  onInit       : function() {
+    $('#terminal').append($('<div class="terminal-output"></div>').attr('id', 'autocomplete').html('<div><div style="width:100%;"><span></span></div></div>'));
+  },
   keydown      : function(e) {
     if(ignoreKeys)
       return false;
@@ -496,23 +766,36 @@ var term = $('#terminal').terminal(function(cmd, term) {
       // Prevent the key event
       return false;
     }
-  },
-  completion   : function(term, word, callback) {
-    // If there is a catch callback
-    if(catchCommand) {
-      // We don't have to autocomplete the input
-      callback([]);
-      // Stop the function
-      return ;
+
+    var cmd = term.get_command(), split = cmd.split(' '), last = split[split.length - 1];
+
+    if($('#autocomplete span').text().length) {
+      if(e.keyCode === 27 || e.keyCode === 13)
+        $('#autocomplete span').text('');
     }
 
-    var cmd = term.get_command(), names, exists, args, base = cmd.split(' ')[0];
+    if(e.keyCode === 13 && cmd === 'clear') {
+      command('clear');
+      return false;
+    }
+
+    if(e.keyCode !== 9 || catchCommand)
+      return ;
+
+    // Auto-completion
+    var names, exists, args, base = split[0], completion = [], keys, has;
+    var width = 8, itemPerLine = 4; /* Autocompletion output style */
 
     // If the command is a unique word
-    if(cmd === word)
+    if(split.length === 1) {
       // Then we autocomplete with command names
-      callback(Object.keys(commands));
-    else {
+      keys = Object.keys(commands);
+
+      for(var i = 0; i < keys.length; i++) {
+        if(keys[i].substr(0, base.length) === base)
+          completion.push(keys[i] + ' ');
+      }
+    } else {
       // We autocomplete with filenames AND command arguments
       exists = commands.hasOwnProperty(base);
       names  = [];
@@ -521,31 +804,51 @@ var term = $('#terminal').terminal(function(cmd, term) {
         error(tr('Failed to autocomplete arguments because command "${cmd}" was not found', [base]));
       else if((args = commands[base].arguments).length) {
         for(var i = 0; i < args.length; i++) {
-          if(args[i].long)
-            names.push('--' + args[i].long)
-          if(args[i].short)
-            names.push('-' + args[i].short);
+          has = (split.indexOf('--' + args[i].long) !== -1 || split.indexOf('-' + args[i].short) !== -1);
+
+          if(args[i].long && !has && ('--' + args[i].long).substr(0, last.length) === last)
+            names.push('--' + args[i].long + ' ')
+          if(args[i].short && !has && ('-' + args[i].short).substr(0, last.length) === last)
+            names.push('-' + args[i].short + ' ');
         }
       }
 
       // We add an asterisc, else search engine will think we want to find files with THIS filename
       // The '*' means "all filenames whichs starts by what we've given"
-      callback(names.concat(server.glob(word + '*', ['names_list', 'add_folders_slash'])));
+      completion = names.concat(server.glob(last/*base*/ + '*', ['names_list', 'add_folders_slash']));
     }
-  },
-  clear        : true
-});
 
-// Define trigger usage
-$('#fullscreen_trigger').on('click', function() {
-  // Go fullscreen !
-  var el = term.get(0);
-  if(el.requestFullscreen)
-      el.requestFullscreen();
-  else if (el.mozRequestFullScreen)
-      el.mozRequestFullScreen();
-  else if (el.webkitRequestFullScreen)
-      el.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT);
+    if(!completion.length)
+      return false;
+
+    split.pop();
+    var without = split.length ? split.join(' ') + ' ' : '';
+
+    if(completion.length === 1) {
+      term.set_command(without + completion[0]);
+      $('#autocomplete span').text('');
+    } else {
+      var tbl = [], str = '', max = 0;
+
+      for(var e = 0; e < completion.length; e++)
+        max = Math.max(max, completion[e].length);
+
+      for(e = 0; e < completion.length; e++) {
+        str += escapeHtml(completion[e]) + '&nbsp;'.repeat(Math.max(1, width - completion[e].length));
+
+        if(str.length >= width * itemPerLine) {
+          tbl.push(str);
+          str = '';
+        }
+      }
+
+      str = tbl.join('\n') + (tbl.length ? '\n' : '') + str;
+      $('#autocomplete span').html(str);
+    }
+
+    return false;
+  },
+  clear: false
 });
 
 // Load game save
@@ -606,185 +909,9 @@ if(!is_save) {
 }
 
 // Update interface
-updateUI();
+// updateUI();
 
-// Define global HSF scope
-var scope = {
-  display: function(text) {
-    display(game.getVar('ALLOW_TRANSLATION') ? tr(text) : text);
-    go();
-  },
-
-  human: function(text) {
-    display(game.getVar('ALLOW_TRANSLATION') ? tr(text) : text, go);
-  },
-
-  clear: function() {
-    term.clear(); go();
-  },
-
-  question: function(msg) {
-    dontRecoverPrompt = true;
-    question(game.getVar('ALLOW_TRANSLATION') ? tr(msg) : msg, function(answer) {
-      // Question callback
-      term.set_prompt(''); // Improving prompt
-      game.setVar('answer', answer);
-      dontRecoverPrompt = null;
-      go();
-    });
-  },
-
-  choice: function() {
-    dontRecoverPrompt = true;
-    term.echo(' ');
-
-    if(game.getVar('ALLOW_TRANSLATION')) {
-      for(var i = 0; i < arguments.length; i++)
-        arguments[i] = tr(arguments[i]);
-    }
-
-    choice(arguments, function(answer) {
-      // Choice callback
-      term.set_prompt(''); // Improving prompt
-      dontRecoverPrompt = null;
-      term.echo(' ');
-      game.setVar('answer', answer);
-      go();
-    });
-  },
-
-  confirm: function(msg) {
-    dontRecoverPrompt = true;
-    term.echo(' ');
-    confirm(game.getVar('ALLOW_TRANSLATION') ? tr(msg) : msg, function(answer) {
-      // Confirm callback
-      term.set_prompt(''); // Improving prompt
-      dontRecoverPrompt = null;
-      term.echo(' ');
-      game.setVar('answer', answer);
-      go();
-    });
-  },
-
-  leave: function(dontGo) {
-    // Permit prompt to refresh again, update it and permit user to access the terminal
-    game.setVar('dont_update_prompt', false);
-    updatePrompt();
-    catchCommand = false;
-
-    if(!dontGo)
-      go();
-  },
-
-  freeze: function() {
-    // If 'FREEZE_UNTIL_TODO' var is set to true, we make prompt unable to refresh
-    game.setVar('dont_update_prompt', true);
-    go();
-  },
-
-  restore: function(dontRestoreScope) {
-    // Restore the checkpoint
-    if(save.label) {
-      justRestoredLabel = true;
-
-      if(!game.goLabel(save.label)) {
-        console.error('Failed to go to label "' + save.label + '"');
-        justRestoredLabel = false;
-      } else {
-        if(save.dsas) {
-          game.pass();
-
-          while(game.current(1)) {
-            if(game.current(1).js && game.current(1).js.match(/^todo *\(/))
-              break;
-
-            game.pass();
-          }
-        }
-
-        term.import_view(save.view);
-      }
-
-      justRestored = true; // put it here or in {if(game.goLabel) ???}
-    }
-
-    // If the save contains the script's diff scope, restore it
-    if(save.scope && !dontRestoreScope) {
-      var keys = Object.keys(save.scope);
-
-      for(var i = 0; i < keys.length; i++)
-        scope[keys[i]] = save.scope[keys[i]];
-    }
-
-    go();
-  },
-
-  server: server,
-  save  : save,
-  game  : game,
-
-  todoModels: {},
-  setTodoModel: function(name, model) {
-    scope.todoModels[name] = model;
-    go();
-  },
-  todo: function() {
-    // todo = []; // useless here
-
-    // If 'FREEZE_UNTIL_TODO' var is set to true, we make user able again to use terminal
-    // ... because it was frozen
-    if(game.getVar('FREEZE_UNTIL_TODO'))
-      scope.leave(true);
-
-    // Prepare the todo list...
-    for(var i = 0; i < arguments.length; i++) {
-      if(typeof arguments[i] === 'string')
-        todo.push(scope.todoModels[arguments[i]]);
-      else
-        todo.push(arguments[i]);
-    }
-
-    if(!justRestored) {
-      didSomethingAfterSave = false;
-      saveGame();
-    } else justRestored = false;
-  },
-
-  goto: function(label) {
-    game.goLabel(label);
-    go();
-  },
-
-  repeat: function(label) {
-    game.repeatLabel();
-    go();
-  },
-
-  next: function(label) {
-    game.nextLabel();
-    go();
-  },
-
-  wait: function(time) {
-    if(typeof time === 'string') {
-      display(time);
-      keydownCallback = go;
-    } else {
-      ignoreKeys = true;
-      setTimeout(function() {
-        ignoreKeys = false;
-        go();
-      }, time);
-    }
-  },
-
-  localStorageStats: function() {
-    scope.answer = localStorageStats();
-    go();
-  }
-};
-
-vars.scope = scope;
+vars.scope  = scope;
 
 // Define some callbacks
 var afterCommand, catchCommand, keydownCallback;

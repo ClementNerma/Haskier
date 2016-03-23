@@ -1,21 +1,32 @@
 'use strict';
 
+const packetSize = 64;
+var   servers    = {};
+
 Object.defineProperty(window, 'Server', {
   enumerable: true,
   configurable: false,
   writable: false,
-  value: function() {
+  value: function(_ip) {
 
   var _chdir  = '/',
         sep   = '/',
       _table  = {},
       _files  = {},
       _states = {},
-      _netwk  = [],
+      _netwk  = {},
       _events = {incoming: {}},
 
       _ports    = [],
       _requests = {};
+
+  if(!_ip)
+    throw new Error('When instanciating server : Missing IP adress');
+
+  if(servers.hasOwnProperty(_ip))
+    throw new Error('When instanciating server : This IP "' + _ip + '" is already taken');
+
+  servers[_ip] = this;
 
   /**
     * Generate a random ID
@@ -255,13 +266,14 @@ Object.defineProperty(window, 'Server', {
     * Append to a file
     * @param {string} file
     * @param {*} content
+    * @param {boolean} [noNewLine]
     * @return {boolean}
     */
-  this.appendFile = function(file, content) {
+  this.appendFile = function(file, content, noNewLine) {
     if(!this.fileExists(file))
       return false;
 
-    return this.writeFile(file, this.readFile(file) + '\n' + asPlain(content));
+    return this.writeFile(file, this.readFile(file) + (nowNewLine ? '' : '\n') + asPlain(content));
   };
 
   /**
@@ -396,22 +408,52 @@ Object.defineProperty(window, 'Server', {
   /**
     * Make a file tree from directory
     * @param {string} dir
+    * @param {boolean} [textual] Textual representation
     * @return {boolean|object}
     */
-  this.tree = function(dir) {
+  this.tree = function(dir, textual) {
     if(!this.dirExists(dir))
-    return false;
+      return false;
 
     var items = this.ls(dir = dir || ''), r = {};
 
     for(var i = 0; i < items.length; i++) {
-    if(this.dirExists(dir + '/' + items[i]))
-      r[items[i]] = this.tree(dir + '/' + items[i]);
-    else
-      r[items[i]] = 1;
+      if(this.dirExists(dir + '/' + items[i]))
+        r[items[i]] = this.tree(dir + '/' + items[i]);
+      else
+        r[items[i]] = 1;
     }
 
-    return r;
+    if(!textual)
+      return r;
+
+    function recurse(tree) {
+      level += '  ';
+
+      if(level.length === 2)
+        level = level.substr(0, level.length - 1);
+
+      var keys = Object.keys(tree);
+
+      if(keys.length) {
+        for(var i = 0; i < keys.length; i++) {
+          if(typeof tree[keys[i]] === 'object') {
+            // Folder !!
+            str += '\n' + level + '└─┬ ' + keys[i];
+            recurse(tree[keys[i]]);
+          } else
+            str += '\n' + level + '├── ' + fescape(keys[i]);
+        }
+      } else
+        // empty folder
+        str += '\n' + level + '├── ${f_grey,italic:Empty}';
+
+      level = level.substr(0, level.length - 2);
+    }
+
+    var level = '', str = normalize(dir) || '/';
+    recurse(r);
+    return str;
   };
 
   /**
@@ -483,10 +525,10 @@ Object.defineProperty(window, 'Server', {
   /**
     * Check if the server is connected to a specific network
     * @param {string} name
-    * @return {boolean}
+    * @return {number|void} Network bandwidth
     */
   this.network = function(name) {
-    return _netwk.indexOf(name) !== -1
+    return _netwk.hasOwnProperty(name) && _netwk[name].speed;
   };
 
   /**
@@ -567,6 +609,8 @@ Object.defineProperty(window, 'Server', {
         _netwk  = data;
       else if(somewhere === 'sep')
         sep     = data;
+      else
+        return false;
     }
 
     data   = null; // Free memory
@@ -613,7 +657,7 @@ Object.defineProperty(window, 'Server', {
     else if(something === 'sep')
       return clone(sep);
 
-    return ;
+    return false;
   };
 
   /**
@@ -819,8 +863,8 @@ Object.defineProperty(window, 'Server', {
       return 'Bad request, client is not valid';
 
     // If server is not connected to the request's network
-    if(_netwk.indexOf(request.network) === -1)
-      return 'Server is not connected to this networks';
+    if(!_netwk.hasOwnProperty(request.network))
+      return 'Server is not connected to this network';
 
     request = clone(request);
     request.id = generateId();
@@ -829,11 +873,79 @@ Object.defineProperty(window, 'Server', {
     if(!_events['incoming:' + request.port])
       return 'Port ' + request.port + ' is not opened';
 
-    var names = Object.keys(_events['incoming:' + request.port]), response = new this.response(callback);
+    var names = Object.keys(_events['incoming:' + request.port]), response = new this.response(request, callback);
+    var index = request.url.indexOf('?'); request.data = {};
+
+    if(index !== -1) {
+      request.data = (function(query) {
+        var result = {};
+        query.split('&').forEach(function(part) {
+          var item = part.split("=");
+          result[item[0]] = decodeURIComponent(item[1]);
+        });
+        return result;
+      })(request.url.substr(index + 1));
+
+      request.url = request.url.substr(0, index);
+    }
+
+    console.log(request);
 
     _events['incoming:' + request.port][names[0]](request, response);
 
     return ;
+  };
+
+  /**
+    * Download a file
+    * @param {object} params IP, url, headers, network, port, data, progress, error, success
+    */
+  this.download = function(params) {
+    if(!servers.hasOwnProperty(params.IP))
+      return params.error("Failed to connect to server : IP not found");
+
+    var content = '', finished = false, keys, query = '', i;
+
+    if(params.data) {
+      keys = Object.keys(params.data);
+      for(i = 0; i < keys.length; i++)
+        query += '&' + keys[i] + '=' + encodeURIComponent(params.data[keys[i]]);
+      params.url += '?' + query.substr(1);
+    }
+
+    var d = Date.now(), c = 0, speed, r, received = 0;
+
+    var error = servers[params.IP].request({
+      url      : params.url,
+      headers  : params.headers || {},
+      network  : params.network || 'hypernet',
+      client   : _ip,
+      bandwidth: this.network('hypernet'),
+      port     : params.port || 80
+    }, function(packet) {
+      c        += packet.final ? packet.content.length : packet.size;
+      received += 1;
+      content  += packet.content;
+      speed     = (c / (Date.now() - d) * 1000).toFixed(2);
+      r         = new Date(0); r.setSeconds((packet.total - received) * packet.size / speed);
+
+      if(params.progress)
+        params.progress(packet.number / packet.total, packet.number, packet.total, speed, (r.getHours() - 1 > 0 ? r.getHours() - 1 + ':' : '') + (r.getMinutes() < 10 ? '0' : '') + r.getMinutes() + ':' + (r.getSeconds() < 10 ? '0' : '') + r.getSeconds());
+
+      if(packet.final && !finished) {
+        finished = true;
+
+        if(packet.headers.code === 200)
+          params.success(content);
+        else {
+          packet.received = content;
+          params.error(tr('Error: Server returned status ${status}', [packet.headers.code]) + '\n' + content, packet);
+        }
+      }
+    });
+
+    if(error)
+      params.error(tr('Failed to connect to server') + '\n' + tr(error));
   };
 
   /**
@@ -857,8 +969,52 @@ Object.defineProperty(window, 'Server', {
 
   /* Classes */
 
-  this.response  = function(onEnd) {
-    this.end     = function() { onEnd(this); };
+  this.response  = function(request, onEnd) {
+    var sending, content, packets, sendI, bandwidth = Math.min(_netwk[request.network].speed, request.bandwidth);
+
+    this.end     = function() {
+      sending = -1;
+
+      this.headers['Content-Length'] = this.content.length;
+      this.size = (packetSize > bandwidth / 8) ? bandwidth / 8 : packetSize;
+
+      content = this.content;
+
+      if(this.content.length !== 0) {
+        packets = Math.floor(content.length / this.size);
+
+        if(packets !== content.length / this.size)
+          packets += 1;
+      } else
+        packets = 1;
+
+      delete this.content;
+
+      this.total = packets;
+
+      sendI = setInterval(function(response) {
+        response.sendNext();
+      }, 1000 * this.size / bandwidth, this);
+    };
+
+    this.sendNext = function() {
+      if(typeof sending !== 'number')
+        return false;
+
+      sending++;
+
+      this.content = content.substr(this.size * sending, this.size);
+      this.number  = sending + 1;
+
+      if(sending + 1 === packets) {
+        // last packet
+        this.final = true;
+        clearInterval(sendI);
+      }
+
+      onEnd(this);
+    };
+
     this.headers = {};
     this.content = '';
   };

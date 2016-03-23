@@ -9,16 +9,17 @@ restore()
 
 : TUTORIAL
 choice("Voir le tutoriel (recommandé si vous jouez pour la première fois à ${haskier})", "Ignorer le tutoriel")
-wait(1000)
 
 if(answer is 2)
+  display("Bon jeu !")
+  wait(2000)
   goto("INIT")
 endif
 
 : TUTORIAL_CONTENT
 #include("tutorial.hsf")
 
-: INIT => Début du jeu
+: INIT => Début du jeu [checkpoint]
 clear()
 "${b_blue:Système} ${italic:Quelqu'un cherche à vous joindre}"
 "${b_blue:Système} ${italic:Pour ouvrir la communication, tapez} <${cyan:com open}>"

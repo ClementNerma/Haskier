@@ -1,7 +1,5 @@
 'use strict';
 
-const humanSpeed = 80;
-
 /**
   * Report a bug
   * @param {string} error
@@ -12,7 +10,7 @@ function report_bug(error, vars) {
   vars = JSON.stringify(vars || {}, null, 4);
 
   // Ask the user for reporting the bug
-  if(confirm(tr('A bug has been detected. Would you like to report it ?\n\nDetails :\n${err}\n\n${vars}', [error, vars])))
+  if(_confirm(tr('A bug has been detected. Would you like to report it ?\n\nDetails :\n${err}\n\n${vars}', [error, vars])))
     // Send the request to the server
     $.ajax({
       url   : 'com/bug-report.run',
@@ -30,6 +28,19 @@ function report_bug(error, vars) {
         alert(tr('Failed to report bug to server ;('));
       }
     });
+}
+
+var outputFilter;
+
+/**
+  * Display a text, considering filters
+  * @param {*} text
+  */
+function echo(text) {
+  if(typeof outputFilter === 'function')
+    outputFilter(text);
+  else
+    term.echo(text);
 }
 
 /**
@@ -124,6 +135,23 @@ function format(text) {
     });
 }
 
+/**
+  * Get a plain date from miliseconds
+  * @param {number} ms
+  * @return {string}
+  */
+function formatDate(ms) {
+  var date    = new Date(ms)                    ,
+      day     = (date.getDate()).toString()     ,
+      month   = (date.getMonth() + 1).toString(),
+      years   = date.getFullYear().toString()   ,
+      hours   = date.getHours().toString()      ,
+      minutes = date.getMinutes().toString()    ;
+
+  return '0'.repeat(2 - day.length) + day + '/' + '0'.repeat(2 - month.length) + month + '/' + years + ' '
+       + '0'.repeat(2 - hours.length) + hours + ':' + '0'.repeat(2 - minutes.length) + minutes;
+}
+
 var displaying      = false; // Is displaying a message ?
 var displayingQueue = [];    // Messages queue
 var displayCallback;         // Displaying callback
@@ -189,7 +217,7 @@ function treatDisplayQueue() {
   // So it have to be displayed in one time
   if(!callback) {
     // Display the text (after variables and color formatting)
-    term.echo(format(msg) || ' ');
+    echo(format(msg) || ' ');
     // Function is not displaying a message anymore
     displaying = false;
     // Stop the function
@@ -231,7 +259,7 @@ function treatDisplay() {
   // If we've displayed all the message
   if(displayingIndex === displaying.length) {
     // Display it as an entire string
-    term.echo(displaying);
+    echo(displaying);
     // ... and make the prompt empty
     term.set_prompt('');
     // We're not displaying a message anymore
@@ -243,9 +271,10 @@ function treatDisplay() {
     if(!queue.length || !queue[0][1]) {
       // Recover the 'normal' prompt
       updatePrompt();
-      // Hide the cover to make user able to type some commands in the terminal
-      ignoreKeys = false;
     }
+
+    // Make user able to type some commands in the terminal
+    ignoreKeys = false;
 
     // Call the display callback (because there is one)
     displayCallback();
@@ -274,9 +303,11 @@ function treatDisplay() {
   */
 function question(message, callback, dontSpace) {
   // Update the prompt with the question
-  term.set_prompt(message + (dontSpace ? '' : ' '));
+  term.set_prompt((message || '?') + (dontSpace ? '' : ' '));
   // Make callback catch the input instead of treating it as a command
   catchCommand = callback;
+  // We don't want prompt to be recovered
+  dontRecoverPrompt = true;
 }
 
 /**
@@ -307,6 +338,9 @@ function choice(args, callback) {
 
     callback(ans, args[ans - 1]);
   };
+
+  // We don't want prompt to be recovered
+  dontRecoverPrompt = true
 }
 
 /**
@@ -328,4 +362,38 @@ function confirm(message, callback) {
 
     callback(ans === yes_key);
   };
+
+  // We don't want prompt to be recovered
+  dontRecoverPrompt = true
+}
+
+/**
+  * Espace string's formatting
+  * @param {string} str
+  * @return {string}
+  */
+function fescape(str) {
+  return str
+    .replace(/\[/g, '&#91;')
+    .replace(/\]/g, '&#93;')
+    .replace(/{/g, '&#123;')
+    .replace(/}/g, '&#125;')
+}
+
+/**
+  * Escape string's regex chars
+  * @param {string} str
+  * @return {string}
+  */
+function rescape(str) {
+  return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
+}
+
+/**
+  * Escape HTML chars from a string
+  * @param {string} str
+  * @return {string}
+  */
+function escapeHtml(str) {
+  return $(document.createElement('span')).text(str).html();
 }
