@@ -1,2 +1,6 @@
-Welcome to the main Internet page !
-${cyan:How are you today ?}
+Vous êtes sur la page d'accueil du réseau ${hypernet}.
+
+Voici une liste des services disponibles :
+
+/speed-test Tester la vitesse de votre connection hypernet
+/about      À propos du réseau

@@ -1,9 +1,6 @@
 {
     "description": "Master Hypernet server",
-    "login": {
-        "identifier": "ùspofS%FDFpSF[sdopIFMl|spdofiSF]$[sf^~#{lkj]}",
-        "password": "poksdf°09Z489ç-zrzà_[#zeproie[e{#qpoi]sdepoi@é}]]"
-    },
+    "users": {},
     "ssh": false,
     "networks": {
       "hypernet": {

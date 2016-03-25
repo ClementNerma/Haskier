@@ -1,11 +1,13 @@
 'use strict';
 
+load_translation('tr/${lang}.json');
+
 register('vampp', {
   legend   : tr('Make a web server to share files'),
   arguments: [
     {
       _       : 'port',
-      regex   : /^[0-9]{1,4}$/,
+      regex   : RegexCollection.port,
       legend  : tr('Port to use. If omitted, use the port 80.')
     }
   ],
@@ -13,8 +15,20 @@ register('vampp', {
     if(this.data.running)
       return display_error(tr('VAMPP server is already running'));
 
+    if(!tokenCatch('incoming', $TOKEN))
+      return ;
+
     var catched = server.catch('incoming:' + (port || 80), function(request, response) {
       var file   = '/webroot/' + server.normalize(request.url);
+
+      if(!tokenRead(file, $TOKEN)) {
+        response.headers['code'] = 404;
+        response.content         = tr('Requested file was not found');
+        response.end();
+
+        console.debug(file);
+        return ;
+      }
 
       if(!server.fileExists(file)) {
         response.headers['code'] = 404;
@@ -22,17 +36,17 @@ register('vampp', {
       } else {
         response.headers['code'] = 200;
         //response.content = file.substr(file.length - 4, 4) === '.xms' ? server.readFile(file) : fescape(server.readFile(file));
-        var content = server.readFile(file);
+        response.content = server.readFile(file);
 
-        if(typeof content === 'string' && file.substr(file.length - 4, 4) === '.xms') {
-          response.content = content.replace(/<%((.|\n)*?)%>/g, function(match, script) {
+        if(typeof response.content === 'string' && file.substr(file.length - 4, 4) === '.xms') {
+          response.content = response.content.replace(/<%([^\\])((.|\n)*?)%>/g, function(match, esc, script) {
             var out = [];
-            (new Function(['request', 'response', 'server', 'echo'], script))(request, response, server, function(text) { out.push(text); });
+            (new Function(['request', 'response', 'server', 'echo'], esc + script))(request, response, server, function(text) { out.push(text); });
             return out.join('\n');
           });
         }
 
-        if(typeof content !== 'string') {
+        if(typeof response.content !== 'string') {
           response.headers['code'] = 500;
           response.content = tr('Internal server error');
         }

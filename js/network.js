@@ -30,10 +30,10 @@ var Network = function(data) {
     */
   this.parseUrl = function(url) {
     for(var parsed, i = 0; i < dns.length; i++)
-      if((parsed = url.replace(dns[i].regex, dns[i].replace)) !== url)
+      if(dns[i].regex.test(url))
         return {
           IP : dns[i].IP,
-          url: parsed
+          url: url.replace(dns[i].regex, dns[i].replace)
         };
 
     return false;

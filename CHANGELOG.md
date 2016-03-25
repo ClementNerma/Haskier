@@ -1,3 +1,28 @@
+Fr 25-03-2016
+Haskier b-0.1
+- Added web page's in-scripts support
+- Added web page's style support (disabled by default)
+- Output '>' operator now supports variable (echo Hi ! > $message)
+- Variables can be used as commands
+- Added `ssh` application
+- Added `shell`, `sleep`, `ssh-back` and `ssh-home` commands
+- Added multi-server connections support
+- Added multi-user per server support
+- Added user token to define access
+
+*** === Misc === ***
+- Custom prompt are now available
+- Improved save manager
+- Added Server.randomString() and Server.randomPassword()
+
+*** === Bug fixes === ***
+- MAJOR Fixed bugs with normalize() function and a lot of Server functions using a path that didn't work with relative paths
+- Fixed bug with `ls` command which was formatting the file's list
+- Fixed bug with `rm` command which didn't remove non-empty folders
+- Fixed bug with question() function which didn't format the message
+- Fixed bug with formatDate() function which was causing a fatal JavaScript error
+- Fixed bugs (a lot) with `save` shell command (save manager)
+
 We 23-03-2016
 Haskier a-0.7
 - Added multi-parts transfers

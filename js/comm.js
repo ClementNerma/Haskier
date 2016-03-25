@@ -141,6 +141,10 @@ function format(text) {
   * @return {string}
   */
 function formatDate(ms) {
+  var d = new Date(ms);
+  return d.toString('d') + ' ' + d.toString('t');
+}
+/*function formatDate(ms) {
   var date    = new Date(ms)                    ,
       day     = (date.getDate()).toString()     ,
       month   = (date.getMonth() + 1).toString(),
@@ -150,7 +154,7 @@ function formatDate(ms) {
 
   return '0'.repeat(2 - day.length) + day + '/' + '0'.repeat(2 - month.length) + month + '/' + years + ' '
        + '0'.repeat(2 - hours.length) + hours + ':' + '0'.repeat(2 - minutes.length) + minutes;
-}
+}*/
 
 var displaying      = false; // Is displaying a message ?
 var displayingQueue = [];    // Messages queue
@@ -303,7 +307,7 @@ function treatDisplay() {
   */
 function question(message, callback, dontSpace) {
   // Update the prompt with the question
-  term.set_prompt((message || '?') + (dontSpace ? '' : ' '));
+  term.set_prompt(format(message || '?') + (dontSpace ? '' : ' '));
   // Make callback catch the input instead of treating it as a command
   catchCommand = callback;
   // We don't want prompt to be recovered

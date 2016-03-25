@@ -5,13 +5,14 @@
   * @type {object}
   */
 var RegexCollection = {
-  IP             : /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/,
-  Boolean        : /^true|false$/,
-  AlphaNumeric   : /^[a-zA-Z0-9_]$/,
-  AlphaNumeric_  : /^[a-zA-Z0-9_]+$/,
-  Integer        : /^(\-|)([0-9]*)$/,
-  PositiveInteger: /^[1-9]([0-9]*)$/,
-  Number         : /^([0-9\.]+)$/
+  IP             : '(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)',
+  port           : '[1-9][0-9]{0,3}',
+  Boolean        : 'true|false',
+  AlphaNumeric   : '[a-zA-Z0-9_]',
+  AlphaNumeric_  : '[a-zA-Z0-9_]+',
+  Integer        : '(\-|)([0-9]*)',
+  PositiveInteger: '[1-9]([0-9]*)',
+  Number         : '([0-9\.]+)'
 };
 
 /**
@@ -42,7 +43,6 @@ var _commands = {
       {
         _       : 'name',
         legend  : tr('New name'),
-        regex   : RegexCollection.AlphaNumeric_,
         required: true
       }
     ],
@@ -210,6 +210,9 @@ var _commands = {
       }
     ],
     callback : function(file, content) {
+      if(!needsWrite(file, TOKEN))
+        return ;
+
       if(!server.writeFile(file, content))
         display_error('Failed to write file');
     }
@@ -234,6 +237,9 @@ var _commands = {
       }
     ],
     callback : function(file, json, format) {
+      if(!needsRead(file))
+        return ;
+
       var content = server[json ? 'readJSON' : 'readFile'](file);
 
       if(typeof content !== 'string')
@@ -265,6 +271,9 @@ var _commands = {
     callback: function(path, folder, recurse) {
       var res, nemp /* Not Empty */;
 
+      if(!needsWrite(path))
+        return ;
+
       if(!server.exists(path))
         return display_error(tr('File or folder not found'));
 
@@ -275,17 +284,17 @@ var _commands = {
         return display_error(tr('This is a file. To remove it, remove the -f option.'));
 
       if(server.dirExists(path)) {
-        if(nemp = server.ls(path).length && !recurse)
+        if(server.ls(path).length && !recurse)
           return display_error(tr('Folder is not empty. To remove it, use -r option.'));
 
-        res = server[nemp ? 'removeTree' : 'removeDir'](path);
+        res = server[recurse ? 'removeTree' : 'removeDir'](path);
 
         if(res)
           display_error(tr(res));
       } else {
         res = server.removeFile(path);
 
-        if(res)
+        if(!res)
           display_error(tr('Failed to remove file'));
       }
     }
@@ -301,6 +310,9 @@ var _commands = {
     ],
     callback : function(path) {
       if(path) {
+        if(!needsRead(path))
+          return ;
+
         if(server.chdir(path))
           updatePrompt();
         else
@@ -329,13 +341,16 @@ var _commands = {
       }
     ],
     callback : function(path, details, hidden) {
+      if(!needsRead(path))
+        return ;
+
       var list = server.ls(path, !!hidden);
 
       if(!list)
         return tr('Directory not found');
 
       if(!details) {
-        display(list.join('\n'));
+        display(fescape(list.join('\n')));
         return ;
       }
 
@@ -346,7 +361,7 @@ var _commands = {
           maxLength = list[i].length;
 
       for(i = 0; i < list.length; i += 1)
-        display('${f_#90EE90:' + list[i] + '}' + ' '.repeat(maxLength - list[i].length) + ' ${f_#7FFFD4:' + (server.fileExists((path || '') + '/' + list[i]) ? 'file' : 'directory') + '}');
+        display('${f_#90EE90:' + fescape(list[i]) + '}' + ' '.repeat(maxLength - list[i].length) + ' ${f_#7FFFD4:' + (server.fileExists((path || '') + '/' + list[i]) ? 'file' : 'directory') + '}');
     }
   },
 
@@ -363,6 +378,9 @@ var _commands = {
       }
     ],
     callback : function(path) {
+      if(!needsRead(path))
+        return ;
+
       var tree  = server.tree(path, true);
 
       if(!tree)
@@ -382,6 +400,9 @@ var _commands = {
       }
     ],
     callback : function(path) {
+      if(!needsWrite(path))
+        return ;
+
       if(!server.mkdir(path))
         displayErr(tr('Failed to make folder'));
     }
@@ -393,11 +414,14 @@ var _commands = {
       {
         _       : 'state',
         legend  : tr('${cyan:open} Open the port, ${cyan:close} Close the port'),
-        regex   : /^open|close$/,
+        regex   : 'open|close',
         required: true
       }
     ],
     callback : function(state) {
+      if(!needsCatch('com-port'))
+        return ;
+
       server.state('communication-opened', state === 'open');
       display(tr('Communication port') + ' ${cyan:' + (state === 'open' ? tr('opened') : tr('closed')) + '}');
     }
@@ -409,11 +433,14 @@ var _commands = {
       {
         _       : 'state',
         legend  : tr('${cyan:enable} Enable the firewall, ${cyan:disable} Disable the firewall'),
-        regex   : /^enable|disable$/,
+        regex   : 'enable|disable',
         required: true
       }
     ],
     callback : function(state) {
+      if(!needsCatch('firewall'))
+        return ;
+
       server.state('firewall-opened', state === 'enable');
       display(tr('Firewall') + ' ${cyan:' + (state === 'enable' ? tr('enabled') : tr('disabled')) + '}');
     }
@@ -429,11 +456,10 @@ var _commands = {
       choice([
         tr('Backup the current save'),
         tr('Restore a save backup'),
-        tr('Estimate the save\'s size'),
         tr('(!) Restart the game'),
         tr('${cyan:' + tr('Cancel') + '}')
       ], function(ans) {
-        if(ans === 5)
+        if(ans === 4)
           return resolve();
 
         display('');
@@ -441,43 +467,49 @@ var _commands = {
         switch(ans) {
           case 1:
             // Backup the current save
-            question('Choose the backup\'s name (letters, digits, ${green:_ -} allowed)', function(name) {
+            question(tr('Choose the backup\'s name (letters, digits, ${green:_ -} allowed)'), function(name) {
               if(!name.match(/^[a-zA-Z0-9_\-]+$/))
                 resolve('${red:' + tr('Wrong backup\'s name') + '}');
               else {
-                var err = backupSave();
+                var err = backupSave(null, name);
 
                 if(err)
                   resolve('${red:' + err + '}');
                 else
-                  resolve('Backuped successfully');
+                  resolve(tr('Backuped successfully'));
               }
             });
             break;
 
           case 2:
-            // BIG ERROR : 1st choice is displayed only after a fatal JS error
-            // BIG ERROR : command non trouvée : b;;1]
-            // BIG ERROR : [USER]: Cannot read property 'save' of undefined
-
             // Restore a backup
             display(tr('Backups list') + ' :');
-            var keys           = Object.keys(localStorage), sav, date;
+            var keys           = Object.keys(localStorage), sav, date, name, corrupted, size;
             var _sm_saves      = [];
             var _sm_saves_json = [];
 
             for(var i = 0; i < keys.length; i += 1) {
               if(keys[i].substr(0, backup_prefix.length) === backup_prefix) {
-                try {
-                  sav  = JSON.parse(localStorage.getItem(keys[i]));
-                  date = formatDate(sav.date);
-                  _sm_saves.push('${green:' + fescape(date) + ' '.repeat(16 - date.length) + '} ' + fescape(sav.marker) + ' '.repeat(30 - sav.marker) + '${cyan:' + fescape(keys[i].substr(backup_prefix.length)) + '}');
-                  _sm_saves_json.push(sav);
-                }
+                try { sav  = JSON.parse(localStorage.getItem(keys[i])); corrupted = false; }
 
                 catch(e) {
                   _sm_saves.push('${red:????????? ' + keys[i].substr(backup_prefix.length) + ' &#91;' + tr('Corrupted') + '&#93;}');
                   _sm_saves_json.push(false);
+                  corrupted = true;
+                }
+
+                if(!corrupted) {
+                  date = formatDate(sav.time);
+                  name = fescape(keys[i].substr(backup_prefix.length));
+
+                  if(!Number.isNaN(parseInt(name)))
+                    name = '${orange:' + tr('Auto backup ${n}', [name]) + '}';
+                  else
+                    name = '${cyan:' + name + '}';
+
+                  size = JSON.stringify(sav).length;
+                  _sm_saves.push('${green:' + fescape(date) + ' '.repeat(16 - date.length) + '} ' + fescape(sav.marker) + ' '.repeat(30 - sav.marker) + ' ${bold:' + size + '}' + ' '.repeat(7 - size.toString().length) + name);
+                  _sm_saves_json.push(sav);
                 }
               }
             }
@@ -499,40 +531,6 @@ var _commands = {
             break;
 
           case 3:
-            display(tr('Backups list') + ' :');
-            var keys = Object.keys(localStorage), list = [], corrupted = [], dates = [], sizes = [], listMax = 1, sizeMax = 1, length, sav;
-
-            for(var i = 0; i < keys.length; i += 1) {
-              if(keys[i].match(/^haskier_smb_([a-zA-Z0-9_\-]+)$/)) {
-                list.push(keys[i].substr(backup_prefix.length));
-                sizes.push(localStorage.getItem(keys[i]).length);
-
-                try {
-                  sav = JSON.parse(localStorage.getItem(keys[i]));
-                  sav.date = formatDate(sav.date);
-                  dates.push(' '.repeat(16 - sav.date.length) + sav.date);
-                }
-
-                catch(e) {
-                  corrupted[i] = true;
-                  dates.push('{f_$red:??????????}');
-                }
-
-                listMax = Math.max(listMax, list[list.length - 1].length);
-                sizeMax = Math.max(sizeMax, sizes[sizes.length - 1].toString().length);
-              }
-            }
-
-            for(i = 0; i < list.length; i += 1)
-              display(list[i] + ' '.repeat(listMax - list[i].length) + ' '.repeat(sizeMax - sizes[i].length) + ' {f_cyan:' + sizes[i] + '} {f_$green:' + dates[i] + '} ' + (corrupted[i] ? ' {f_$red:[Corrompu]}' : ''));
-
-            if(!list.length)
-              display(tr('No backup was found'));
-
-            resolve();
-            break;
-
-          case 4:
             display(tr("Do you REALLY want to restart the game ? All progression will be lost !\n${bold:NOTE :} Your save's backups won't be lost and you'll be able to restore it at any moment\nType your player's name : ${bold:${name}} to restart the game"));
 
             question(null, function(name) {
@@ -556,6 +554,204 @@ var _commands = {
     async    : true, // Game will stop until page is refreshed
     callback : function() {
       window.location.reload();
+    }
+  },
+
+  cpm: {
+    legend   : tr('Century Code Package Manager'),
+    arguments: [
+      {
+        _       : 'action',
+        legend  : 'install remove update restart',
+        required: true
+        //regex   : /^install$/ // Causing a fatal error
+      },
+      {
+        _       : 'name',
+        legend  : tr('Application\'s name'),
+        required: true
+      }
+    ],
+    async   : true,
+    callback: function(action, name, resolve) {
+      ignoreKeys = false;
+
+      if(!action.match(/^install|remove|update|restart$/))
+        return resolve('${red:' + tr('Bad action specified') + '}');
+
+      if(!name.match(/^[a-zA-Z0-9_\-]+$/))
+        return resolve('${red:' + tr('Bad application\'s name specified') +'}');
+
+      if(!needsRead('/apps/' + name))
+        return ;
+
+      var has = server.dirExists('/apps/' + name), err;
+
+      switch(action) {
+        case 'remove':
+          if(!has) return resolve('${red:' + tr('Application "${name}" is not installed', [name]) + '}');
+          confirm(tr('Do you really want to uninstall "${name}" ?', [name]), function(ans) {
+            if(!ans)
+              return resolve();
+
+            if(!needsWrite('/apps/' + name))
+              return resolve();
+
+            if(err = server.removeTree('/apps/' + name))
+              resolve('${red: ' + tr('Failed to remove "${name}". Please try again. Error : ${err}', [name, tr(err)]) + '}');
+            else {
+              saveGame();
+              confirm(tr('"${name}" has been successfully removed. You must reboot your server to make changes takes effect. Reboot now ?', [name]), function(reboot) {
+                if(reboot)
+                  exec('restart');
+                else
+                  resolve();
+              });
+            }
+          });
+          break;
+
+        case 'install':
+        case 'update' :
+          if(action === 'update' && !has) return resolve('${red:' + tr('Application "${name}" is not installed', [name]) + '}');
+          if(action === 'install' && has) return resolve('${red:' + tr('Application "${name}" is already installed', [name]) + '}')
+
+          if(!needsWrite('/apps/' + name))
+            return resolve();
+
+          var content = '', eq, barSize = 50;
+          term.set_prompt('[' + ' '.repeat(barSize) + '] 0%');
+
+          ignoreKeys = true;
+          server.download({
+            url     : 'app.xms',
+            data    : {name: name},
+            IP      : '__store',
+            progress: function(progress, m, M, speed, time) {
+              term.set_prompt('[' + '='.repeat(eq = Math.floor(progress * barSize)) + ' '.repeat(barSize - eq) + '] ' + Math.floor(progress * 100) + '% ' + time + ' (' + speed + ' b/s)');
+            },
+            error   : function(err, pkt) {
+              if(!pkt) resolve('${red:' + err.split('\n').join('}\n${red:') + '}');
+
+              if(pkt && pkt.headers.code === 404)
+                resolve('${red:' + tr('Application "${name}" was not found on the store', [name]) + '}');
+              else
+                resolve('${red:' + tr('Failed to download "${name}"', [name]) + '}')
+            },
+            success: function(ct) {
+              term.set_prompt('');
+
+              display(tr('Creating folder...'));
+              server.mkdir('/apps/' + name);
+
+              display(tr('Extracting package...'));
+
+              var app   = JSON.parse(ct);
+              var files = Object.keys(app);
+
+              for(var i = 0; i < files.length; i++) {
+                display(tr('Extracting file ${i} of ${num}', [i + 1, files.length]));
+                server.writeFile('/apps/' + name + '/' + files[i], app[files[i]]);
+              }
+
+              display(tr('Starting application...'));
+
+              if(!startApp(name))
+                display_error(tr('Failed to start application.'));
+              else
+                display(tr('Done.'));
+
+              resolve();
+            }
+          });
+
+          break;
+
+        case 'restart':
+          if(!has) return resolve('${red:' + tr('Application "${name}" is not installed', [name]) + '}');
+          display(tr('Restarting application...'));
+
+          if(!startApp(name))
+            display_error(tr('Failed to restart application.'));
+          else
+            display(tr('Done.'));
+
+          display(tr('Done.'));
+          break;
+      }
+    }
+  },
+
+  shell: {
+    legend   : tr('Run a script or a command'),
+    arguments: [
+      {
+        _       : 'path',
+        legend  : tr('Script\'s path or command\'s content (require ${grey:--eveal})'),
+        required: true
+      },
+      {
+        short   : 'e',
+        long    : 'eval',
+        legend  : tr('Evaluate the content as a command')
+      }
+    ],
+    callback : function(path, e) {
+      if(!e) {
+        path = server.readFile(path);
+
+        if(typeof path !== 'string')
+          return display_error('Failed to read file');
+
+        path = path.split('\n');
+
+        for(var i = path.length - 1; i >= 0; i--)
+          queue.unshift([path[i], null]);
+      } else
+        queue.unshift([path, null]);
+    }
+  },
+
+  sleep: {
+    legend   : tr('Sleep the script during a while'),
+    async    : true,
+    arguments: [
+      {
+        _       : 'time',
+        legend  : tr('Sleep duration, in ms. If omitted, will sleep during 1000 ms.')
+      }
+    ],
+    callback : function(time, resolve) {
+      setTimeout(resolve, parseInt(time) || 1000);
+    }
+  },
+
+  /* Generic SSH commands */
+
+  "ssh-back": {
+    legend   : tr('Return to the previous SSH server'),
+    arguments: [],
+    callback : function() {
+      serverLogged.pop();
+      var target = serverLogged[serverLogged.length - 1];
+
+      if(!target) {
+        display(tr('You\'re not connected to any SSH server. You will be redirected to your home server.'));
+        queue.unshift(['ssh-home']);
+      } else {
+        updateServer(target[0], target[1]);
+        display(tr('Welcome back to ${IP}', [target[0]]));
+      }
+    }
+  },
+
+  "ssh-home": {
+    legend   : tr('Return to your home SSH server'),
+    arguments: [],
+    callback : function() {
+      serverLogged = [];
+      updateServer('__local', 'Shaun');
+      display(tr('Welcome back to home, ${name} !'));
     }
   },
 
@@ -603,113 +799,6 @@ var _commands = {
 
       //display(fescape(out.join('\n')));
       display(out.join('\n'));
-    }
-  },
-
-  cpm: {
-    legend   : tr('Century Code Package Manager'),
-    arguments: [
-      {
-        _       : 'action',
-        legend  : 'install remove update restart',
-        required: true
-        //regex   : /^install$/ // Causing a fatal error
-      },
-      {
-        _       : 'name',
-        legend  : tr('Application\'s name'),
-        required: true
-      }
-    ],
-    async   : true,
-    callback: function(action, name, resolve) {
-      ignoreKeys = false;
-
-      if(!action.match(/^install|remove|update|restart$/))
-        return resolve('${red:' + tr('Bad action specified') + '}');
-
-      if(!name.match(/^[a-zA-Z0-9_\-]+$/))
-        return resolve('${red:' + tr('Bad application\'s name specified') +'}');
-
-      var has = server.dirExists('/apps/' + name), err;
-
-      switch(action) {
-        case 'remove':
-          if(!has) return resolve('${red:' + tr('Application "${name}" is not installed', [name]) + '}');
-          confirm(tr('Do you really want to uninstall "${name}" ?', [name]), function(ans) {
-            if(!ans)
-              return resolve();
-
-            if(err = server.removeTree('/apps/' + name))
-              resolve('${red: ' + tr('Failed to remove "${name}". Please try again. Error : ${err}', [name, tr(err)]) + '}');
-            else {
-              saveGame();
-              confirm(tr('"${name}" has been successfully removed. You must reboot your server to make changes takes effect. Reboot now ?', [name]), function(reboot) {
-                if(reboot)
-                  exec('restart');
-                else
-                  resolve();
-              });
-            }
-          });
-          break;
-
-        case 'install':
-        case 'update' :
-          if(action === 'update' && !has) return resolve('${red:' + tr('Application "${name}" is not installed', [name]) + '}');
-          if(action === 'install' && has) return resolve('${red:' + tr('Application "${name}" is already installed', [name]) + '}')
-
-          var content = '', eq, barSize = 50;
-          term.set_prompt('[' + ' '.repeat(barSize) + '] 0%');
-
-          ignoreKeys = true;
-          server.download({
-            url     : 'app.xms',
-            data    : {name: name},
-            IP      : '__store',
-            progress: function(progress, m, M, speed, time) {
-              term.set_prompt('[' + '='.repeat(eq = Math.floor(progress * barSize)) + ' '.repeat(barSize - eq) + '] ' + Math.floor(progress * 100) + '% ' + time + ' (' + speed + ' b/s)');
-            },
-            error   : function(err, pkt) {
-              if(!pkt) resolve('${red:' + err.split('\n').join('}\n${red:') + '}');
-
-              if(pkt.headers.code === 404)
-                resolve('${red:' + tr('Application "${name}" was not found on the store', [name]) + '}');
-              else
-                resolve('${red:' + tr('Failed to download "${name}"', [name]) + '}')
-            },
-            success: function(ct) {
-              term.set_prompt('');
-
-              display(tr('Creating folder...'));
-              server.mkdir('/apps/' + name);
-
-              display(tr('Extracting package...'));
-
-              var app   = JSON.parse(ct);
-              var files = Object.keys(app);
-
-              for(var i = 0; i < files.length; i++) {
-                display(tr('Extracting file ${i} of ${num}', [i + 1, files.length]));
-                server.writeFile('/apps/' + name + '/' + files[i], app[files[i]]);
-              }
-
-              display(tr('Starting application...'));
-              startApp(name);
-              display(tr('Done.'));
-              resolve();
-            }
-          });
-
-          break;
-
-        case 'restart':
-          if(!has) return resolve('${red:' + tr('Application "${name}" is not installed', [name]) + '}');
-          display(tr('Restarting application...'));
-          startApp(names);
-          display(tr('Done.'));
-          break;
-      }
     }
   },
 

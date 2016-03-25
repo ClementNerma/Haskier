@@ -78,8 +78,7 @@ var scope = {
     // Restore the checkpoint
     if(save.label) {
       justRestoredLabel = true;
-
-      if(!game.goLabel(save.label)) {
+      if(!game.goLabel(fastdev && query.label ? query.label : save.label)) {
         console.error('Failed to go to label "' + save.label + '"');
         justRestoredLabel = false;
       } else {
@@ -98,6 +97,11 @@ var scope = {
       }
 
       justRestored = true; // put it here or in {if(game.goLabel) ???}
+    } else if(fastdev && query.label) {
+      if(!game.goLabel(query.label))
+        console.error('[DEV] Failed to go to label "' + save.label + '"');
+
+      justRestoredLabel = false;
     }
 
     // If the save contains the script's diff scope, restore it
@@ -136,6 +140,9 @@ var scope = {
       didSomethingAfterSave = false;
       saveGame();
     } else justRestored = false;
+
+    if(fastdev && query.exec)
+      command(query.exec);
   },
 
   goto: function(label) {

@@ -1,9 +1,6 @@
 {
     "description": "AppShop for CenturyCode",
-    "login": {
-        "identifier": "mlksdfpoiSDFPOIKSDFMLlksdfpPOI_$é@{[#@fdlkj]}",
-        "password": "flkjfdl#{#]^@lmksdf{{[lkdjf[]@sdklfjdslfkj[#]}"
-    },
+    "users": {},
     "ssh": false,
     "networks": {
       "hypernet": {

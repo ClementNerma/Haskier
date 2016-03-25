@@ -1,5 +1,7 @@
 'use strict';
 
+load_translation('tr/${lang}.json');
+
 register('icefox', {
   legend   : tr('Get a web page\'s content'),
   arguments: [
@@ -9,22 +11,35 @@ register('icefox', {
       required: true
     },
     {
-      _       : 'server',
+      long    : 'IP',
       legend  : tr('Server\'s IP if you want to connect to a server. Then, remove the prefix ${grey:xxx://}'),
       regex   : RegexCollection.IP,
       error   : tr('Bad IP adress was specified')
     },
     {
+      short   : 'p',
+      long    : 'port',
+      legend  : tr('Port to use. If omitted, use the port 80.'),
+      regex   : RegexCollection.port
+    },
+    {
       short   : 'd',
       long    : 'download',
       legend  : tr('Download location. If omitted, will just display the file.')
+    },
+    {
+      short   : 't',
+      long    : 'allow-styles',
+      legend  : tr('Allow styles to be displayed')
+    },
+    {
+      short   : 's',
+      long    : 'allow-scripts',
+      legend  : tr('Allow web page to run scripts on your server')
     }
   ],
   async    : true,
-  callback : function(url, IP, dw, resolve) {
-    if(!server.network('hypernet')) // ... is not a function
-      return display_error(tr('Your computer is not connected to hypernet'));
-
+  callback : function(url, IP, port, dw, allowStyles, allowScripts, resolve) {
     if(IP) {
       // connect to a specific server
       if(!servers.hasOwnProperty(IP) || !servers[IP].network('hypernet'))
@@ -41,12 +56,18 @@ register('icefox', {
       url = parsed.url;
     }
 
-    var content = '', eq, barSize = 50;
+    var content = '', eq, barSize = 50, finalUrl = url.split(/\//)[url.split(/\//).length - 1];
+    if(dw && typeof dw !== 'string') dw = finalUrl;
+    
+    if(dw && !needsWrite(dw))
+      return resolve();
+
     term.set_prompt('[' + ' '.repeat(barSize) + '] 0%');
 
     server.download({
-      url     : url,
-      IP      : IP ,
+      url     : url ,
+      IP      : IP  ,
+      port    : port,
       progress: function(progress) {
         term.set_prompt('[' + '='.repeat(eq = Math.floor(progress * barSize)) + ' '.repeat(barSize - eq) + '] ' + Math.floor(progress * 100) + '%');
       },
@@ -55,12 +76,31 @@ register('icefox', {
       },
       success : function(content) {
         if(dw) {
-          if(!server.writeFile(typeof dw === 'string' ? dw : url.split(/\//)[url.split(/\//).length - 1], content))
+          if(!server.writeFile(typeof dw === 'string' ? dw : finalUrl, content))
             resolve('${red:' + tr('Unable to write the download\'s location') + '}');
           else
             resolve(tr('Download has finished successfully'));
-        } else
-          resolve(content);
+        } else {
+          var dontResolve = false;
+
+          content = content.replace(/<%\\((.|\n)*?)%>/g, function(match, script) {
+            if(!allowScripts)
+              return '<%%>';
+
+            var out = [];
+            (new Function(['echo', 'forceStyles', 'dontResolve', 'resolve'], script))(
+              function(text) { out.push(text); },
+              function() { allowStyles = true; },
+              function() { dontResolve = true; }
+            , resolve);
+            return out.join('\n');
+          });
+
+          updatePrompt();
+
+          if(!dontResolve)
+            resolve((allowStyles ? content : fescape(content)).replace(/<%%>/g, '${yellow:=== script removed ===}'));
+        }
       }
     });
   }

@@ -1,7 +1,9 @@
 'use strict';
 
+var language = navigator.language || 'en';
+
 var tr_pkg = (function() {
-  var target = navigator.language, pkg;
+  var target = language, pkg;
 
   if(!target)
     return {};

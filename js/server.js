@@ -121,13 +121,17 @@ Object.defineProperty(window, 'Server', {
   /**
     * Normalize a path
     * @param {string} input
+    * @param {boolean} [allowChdir]
     * @return {string}
     */
-  function normalize(input) {
+  function normalize(input, allowChdir) {
     if(!input)
-    return '';
+      return (allowChdir ? _chdir : '');
 
     var parts = input.split(/\\|\//), out = [];
+
+    if(input.substr(0, 1) !== '/' && _chdir !== '/' && allowChdir)
+      parts.splice.apply(parts, [0, 0].concat(_chdir.split('/')));
 
     for(var i = 0; i < parts.length; i++) {
       if(parts[i] !== '.' && parts[i].length) {
@@ -138,8 +142,10 @@ Object.defineProperty(window, 'Server', {
       }
     }
 
-    return out.join(sep);
+    return (allowChdir ? '/' : '') + out.join(sep);
   }
+
+  this.fs = function(path, type, write) { return _fs(path, type, write); };
 
   /**
     * Perform an action on the filesystem
@@ -149,7 +155,7 @@ Object.defineProperty(window, 'Server', {
     * @return {boolean|object}
     */
   function _fs(_path, type, write) {
-    var path = normalize(_path);
+    var path = normalize(_path, true).substr(1);
 
     if(!path) {
       if(typeof _files !== type)
@@ -242,6 +248,9 @@ Object.defineProperty(window, 'Server', {
     * @return {boolean}
     */
   this.touchFile = function(file) {
+    if(this.fileExists(file))
+      return false;
+
     return this.writeFile(file, '');
   };
 
@@ -333,8 +342,9 @@ Object.defineProperty(window, 'Server', {
     * @return {boolean|array}
     */
   this.readDir = function(dir, showHidden) {
-    var d = _fs(dir = normalize(dir), 'object'), out = [];
+    var d = _fs(dir, 'object'), out = [];
     if(!d) return false;
+    dir = normalize(dir, true).substr(1);
 
     d = Object.keys(d);
 
@@ -502,8 +512,10 @@ Object.defineProperty(window, 'Server', {
     * @return {string}
     */
   this.chdir = function(dir) {
-    if(typeof dir === 'undefined') return _chdir.substr(0, 1) === '/' ? _chdir : '/' + _chdir;
-    dir   = normalize(dir);
+    if(typeof dir === 'undefined')
+      return (_chdir.substr(0, 1) === '/' ? _chdir : '/' + _chdir);
+
+    dir   = normalize(dir, true);
     var e = this.dirExists(dir);
     if(e) { _chdir = dir; }
     return e;
@@ -686,14 +698,21 @@ Object.defineProperty(window, 'Server', {
      * only_folders
      * names_list
      * add_folders_slash
+     * relative_path:...
      */
 
     if(Array.isArray(options) || !options) {
       options = options || [];
       var f = {};
 
-      for(var i = 0; i < options.length; i++)
-        f[options[i]] = true;
+      for(var i = 0; i < options.length; i++) {
+        if(options[i].substr(0, 14) === 'relative_path:')
+          f.relative_path = normalize(options[i].substr(14), true) + '/';
+        else if(options[i] === 'relative_path')
+          f.relative_path = (_chdir === '/' ? '/' : _chdir + '/');
+        else
+          f[options[i]] = true;
+      }
 
       options = f;
     }
@@ -703,11 +722,16 @@ Object.defineProperty(window, 'Server', {
       return new RegExp('^' + str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&").replace(/\\\*/g, '(.*?)').replace(/\\\?/g, '(.)') + '$');
     }
 
-    query = normalize(query).split(sep);
+    if(!results)
+      // First call of the function
+      query = normalize(query, true).substr(1).split(sep);
+    else
+      // Not the first call
+      query = normalize(query).split(sep);
 
     var store      = storage || _files, i,
         _path      = _path || '',
-        begpath    = _path + (_path.length ? '/' : ''),
+        begpath    = (_path.substr(0, 1) === '/' ? _path : '/' + _path) + (_path.length ? '/' : ''),
         files, saw = [],
         results    = results || [],
         regex, match, tmp;
@@ -723,7 +747,7 @@ Object.defineProperty(window, 'Server', {
           // if the regex match with the file's name
           if(query.length > 1) {
             // if there are some other parts
-            saw.push(options.names_list ? begpath + files[i] + (tmp && options.add_folders_slash ? '/' : '') : files[i]);
+            saw.push(options.names_list ? (options.relative_path ? begpath.substr(options.relative_path.length) : begpath) + files[i] + (tmp && options.add_folders_slash ? '/' : '') : files[i]);
 
             if(!_table[begpath + files[i]] || (_table[begpath + files[i]] && _table[begpath + files[i]].hidden && options.show_hidden) || (!_table[begpath + files[i]].hidden))
               this.glob(query.slice(1).join(sep), options, store[files[i]], begpath + files[i], results, searchArgs.concat(match.slice(1)));
@@ -731,7 +755,7 @@ Object.defineProperty(window, 'Server', {
             // if that's the end of the query
             if(!_table[begpath + files[i]] || (_table[begpath + files[i]] && _table[begpath + files[i]].hidden && options.show_hidden) || (!_table[begpath + files[i]].hidden))
               if((tmp = this.dirExists(begpath + files[i]) && !options.only_files && !options.exclude_folders) || (this.fileExists(begpath + files[i]) && !options.only_folders && !options.exclude_files))
-                results.push(options.names_list ? begpath + files[i] + (tmp && options.add_folders_slash ? '/' : '') : {path: begpath + files[i] + (tmp && options.add_folders_slash ? '/' : ''), vars:searchArgs.concat(match.slice(1)), type: !tmp*1});
+                results.push(options.names_list ? (options.relative_path ? begpath.substr(options.relative_path.length) : begpath) + files[i] + (tmp && options.add_folders_slash ? '/' : '') : {path: begpath + files[i] + (tmp && options.add_folders_slash ? '/' : ''), vars:searchArgs.concat(match.slice(1)), type: !tmp*1});
           }
         }
       }
@@ -751,13 +775,13 @@ Object.defineProperty(window, 'Server', {
             // that's a file
             if(!_table[begpath + query[0]] || (_table[begpath + query[0]] && _table[begpath + query[0]].hidden && options.show_hidden) || (!_table[begpath + query[0]].hidden))
               if((tmp = this.dirExists(begpath + query[0]) && !options.only_files && !options.exclude_folders) || (this.fileExists(begpath + query[0]) && !options.only_folders && !options.exclude_files))
-                results.push(options.names_list ? begpath + query[0] + (tmp && options.add_folders_slash ? '/' : '') : {path: begpath + query[0] + (tmp && options.add_folders_slash ? '/' : ''), vars:searchArgs, type: !tmp*1});
+                results.push(options.names_list ? (options.relative_path ? begpath.substr(options.relative_path.length) : begpath) + query[0] + (tmp && options.add_folders_slash ? '/' : '') : {path: begpath + query[0] + (tmp && options.add_folders_slash ? '/' : ''), vars:searchArgs, type: !tmp*1});
           }
         } else {
           // if that's the end of the query
           if(!_table[begpath + query[0]] || (_table[begpath + query[0]] && _table[begpath + query[0]].hidden && options.show_hidden) || (!_table[begpath + query[0]].hidden))
             if((tmp = this.dirExists(begpath + query[0]) && !options.only_files && !options.exclude_folders) || (this.fileExists(begpath + query[0]) && !options.only_folders && !options.exclude_files))
-              results.push(options.names_list ? begpath + query[0] + (tmp && options.add_folders_slash ? '/' : '') : {path: begpath + query[0] + (tmp && options.add_folders_slash ? '/' : ''), vars:searchArgs, type: !tmp*1});
+              results.push(options.names_list ? (options.relative_path ? begpath.substr(options.relative_path.length) : begpath) + query[0] + (tmp && options.add_folders_slash ? '/' : '') : {path: begpath + query[0] + (tmp && options.add_folders_slash ? '/' : ''), vars:searchArgs, type: !tmp*1});
         }
       }
     }
@@ -779,10 +803,11 @@ Object.defineProperty(window, 'Server', {
   /**
     * Normalize a path
     * @param {string} p
+    * @param {boolean} [cwd]
     * @return {string}
     */
-  this.normalize = function(p) {
-    return normalize(p);
+  this.normalize = function(p, cwd) {
+    return normalize(p, cwd);
   };
 
   /**
@@ -901,6 +926,9 @@ Object.defineProperty(window, 'Server', {
     * @param {object} params IP, url, headers, network, port, data, progress, error, success
     */
   this.download = function(params) {
+    if(!_netwk.hasOwnProperty(params.network || 'hypernet'))
+      return params.error("Server is not connected to this network");
+
     if(!servers.hasOwnProperty(params.IP))
       return params.error("Failed to connect to server : IP not found");
 
@@ -936,7 +964,11 @@ Object.defineProperty(window, 'Server', {
         finished = true;
 
         if(packet.headers.code === 200)
-          params.success(content);
+          params.success(content, {
+            speed: speed,
+            time : Date.now() - d,
+            size : c/*(packet.total - 1) * packet.size + packet.content.length*/
+          });
         else {
           packet.received = content;
           params.error(tr('Error: Server returned status ${status}', [packet.headers.code]) + '\n' + content, packet);
@@ -955,6 +987,34 @@ Object.defineProperty(window, 'Server', {
   this.generateId = function() { return generateId(); };
 
   /**
+    * Generate a random string
+    * @param {number} [length] String length. Default: 10
+    * @return {string}
+    */
+  this.randomString = function(length) {
+    var p = '';
+
+    for(var g = 0; g < (length || 30); g++)
+      p += String.fromCharCode(Math.floor(Math.random() * 256));
+
+    return p.replace(/\n| /g,String.fromCharCode(256));
+  };
+
+  /**
+    * Generate a random password
+    * @param {number} [length] String length. Default: 10
+    * @return {string}
+    */
+  this.randomPassword = function(length) {
+    var p = '', allowedChars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_()[]{}°@/*++~';
+
+    for(var g = 0; g < (length || 30); g++)
+      p += allowedChars.substr(Math.floor(Math.random() * allowedChars.length), 1);
+
+    return p;
+  };
+
+  /**
     * Get the server's ID
     * @return {string}
     */
@@ -970,7 +1030,7 @@ Object.defineProperty(window, 'Server', {
   /* Classes */
 
   this.response  = function(request, onEnd) {
-    var sending, content, packets, sendI, bandwidth = Math.min(_netwk[request.network].speed, request.bandwidth);
+    var sending, content, packets, sendI, bandwidth = fastdev ? 16384 : Math.min(_netwk[request.network].speed, request.bandwidth);
 
     this.end     = function() {
       sending = -1;

@@ -1,5 +1,4 @@
-
-// TODO: Use ECC lib
+'use strict';
 
 var names = Object.keys(servers), search, apps, _server, j;
 

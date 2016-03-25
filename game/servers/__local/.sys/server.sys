@@ -1,12 +1,14 @@
 {
     "description": "Personnal computer for ${name}",
-    "login": {
-        "identifier": "$master",
-        "password": "m@st€rP@ssw0rd"
+    "users": {
+      "Shaun": {
+        "password": "m@st€rP@ssw0rd",
+        "token": "user"
+      }
     },
     "networks": {
       "hypernet": {
-        "speed": 16
+        "speed": 64
       },
       "__shaun": {}
     }

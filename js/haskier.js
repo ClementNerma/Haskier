@@ -1,18 +1,23 @@
 'use strict';
 
-// TODO: FIXBUG: When refresh page two times, progression is reset
-
 var hidden = $('#terminal, #clock').hide(),
   dontRecoverPrompt = false, hsf_conds = [], todo = [], justRestored = false, justRestoredLabel = false,
   ignoreKeys = false, gameStarted = false, clock, clockInterval, clockRefresh, cmd_out = [], buff_out = [],
-  redirection = false, fastMode = !!location.search.match(/(\?|&)fastmode=true(&|$)/);
+  redirection = false, query = (function(query) {var result = {};query.split('&').forEach(function(part) {var item = part.split("=");result[item[0]] = decodeURIComponent(item[1]);});return result;})(location.search.substr(1)),
+  fastMode = !!query.fastmode, fastdev = (query.fastmode === atob('ZGV2ZWxvcHBlci1oYXg=')), CompiledRegExp = {};
+/* FastDev query parameters :
+ * label Go to a HSF label when scope.restore() is called
+ * exec  Run a shell command when scope.todo() is called
+ * reset Reset the game's save
+ */
+if(fastdev && query.reset)
+  localStorage.removeItem('haskier');
 
 /*const*/
 var   readingLineDuration = 50;
 var   humanSpeed          = 80;
 const backup_prefix       = 'hsk_arch_';
 
-//var clone=function(t){var r=new Array,e=function(t){if("undefined"!=typeof Object.getPrototypeOf)return Object.getPrototypeOf(t);var r=new Object;return"undefined"!=typeof t.__proto__&&"undefined"!=typeof r.__proto__&&r.__proto__===Object.prototype?t.__proto__:"undefined"!=typeof t.constructor&&"undefined"!=typeof r.constructor&&r.constructor===Object&&"undefined"!=typeof t.constructor.prototype?t.constructor.prototype:Object.prototype},o=function(t){if("object"!=typeof t)return t;if(null===t)return null;for(var n=0;n<r.length;n++)if(r[n][0]===t)return r[n][1];if(Array.isArray(t)){var p=[];p.prototype=e(t),r.push([t,p]);for(var f in t)p[f]=o(t[f])}else{var u=new Function;u.prototype=e(t);var p=new u;r.push([t,p]);for(var c in t)t.hasOwnProperty(c)&&(p[c]=o(t[c]))}return p};return o(t)};
 var clone = (new Server('@model')).clone;
 
 /**
@@ -63,6 +68,9 @@ function ready() {
     return HSF_files[filename];
   });
 
+  if(save.logged)
+    serverLogged = save.logged;
+
   var names = Object.keys(haskier.servers), name, apps, j, d, commands, l;
 
   for(var i = 0; i < names.length; i++) {
@@ -81,8 +89,24 @@ function ready() {
     }
   }
 
-  if(!save.time && haskier['install.js'])
+  if(!save.time && haskier['install.js']) { var sys;
+    console.log('Running installation program...');
+
+    for(i = 0; i < names.length; i++) {
+      server = servers[names[i]];
+      TOKEN  = clone(TOKENS.system);
+      sys    = server.readJSON('.sys/server.sys');
+
+      sys.users.system = {password: server.randomPassword(), token: TOKENS['system']};
+      sys.users.guest  = {password: server.randomPassword(), token: TOKENS['guest' ]};
+      server.writeFile('.sys/server.sys', sys);
+
+      if(!server.dirExists('/apps'))
+        server.mkdir('/apps');
+    }
+
     window.eval(haskier['install.js']);
+  }
 
   display(tr('Starting up the servers...'));
   console.log('Starting up servers...');
@@ -95,12 +119,14 @@ function ready() {
     serversCommands[names[i]] = clone(_commands);
 
     //startApp(apps[j].vars[0], names[i]);
+    TOKEN = clone(TOKENS.system);
 
     for(j = 0; j < apps.length; j++)
-      startApp(apps[j].vars[0], names[i]);
+      if(!startApp(apps[j].vars[0], names[i]))
+        console.error('Failed to start application ' + apps[j].vars[0] + ' from server ' + names[i]);
 
     if(servers[names[i]].fileExists('/user/init.hss')) {
-      updateServer(names[i]);
+      updateServer(names[i], 'system');
       commands = server.readFile('/user/init.hss').split('\n');
 
       for(l = 0; l < commands.length; l++)
@@ -123,7 +149,19 @@ function ready() {
   /* Clock setup */
 
   clockRefresh = function() {
-    $('#clock').text(clock.toString('d') + ' ' + clock.toString('t'));
+    vars.clock = {
+      year   : clock.getFullYear(),
+      month  : clock.getMonth() + 1,
+      day    : clock.getDate(),
+      hours  : clock.getHours(),
+      minutes: clock.getMinutes(),
+      seconds: clock.getSeconds(),
+
+      t_hour : clock.toString('t'),
+      t_date : clock.toString('d')
+    };
+
+    $('#clock').text(vars.clock.t_date + ' ' + vars.clock.t_hour);
   };
 
   setTimeout(function() {
@@ -132,11 +170,11 @@ function ready() {
   clockRefresh();
 
   term.clear();
-  updateServer(save.server || '__local');
+  updateServer(save.server || '__local', save.user || 'Shaun');
   updateUI();
 
   gameStarted = true;
-  console.info('Game started in ' + (Date.now() - started) + ' ms');
+  console.info('Game     started in ' + (Date.now() - started) + ' ms\nWeb page started in ' + (Date.now() - webPageStarted) + ' ms');
 
   go();
 }
@@ -145,16 +183,44 @@ function ready() {
   * Start an app on a server
   * @param {string} app
   * @param {string} [serverName]
+  * @param {boolean} [returnError] If an error occures, return it instead of returning `false`
+  * @return {boolean|Error}
   */
-function startApp(app, serverName) {
+function startApp(app, serverName, returnError) {
   var _server = serverName ? servers[serverName] : server;
 
-  (new Function(['server', 'register'], _server.readFile('/apps/' + app + '/app.hps'))).apply(window, [_server, function(name, command) {
-    if(typeof command.legend !== 'string' || !Array.isArray(command.arguments) || typeof command.callback !== 'function')
-      fatal('Can\'t register invalid command "' + name + '"');
+  try {
+    (new Function(['server', 'register', 'load_translation', '$TOKEN'], _server.readFile('/apps/' + app + '/app.hps'))).apply(window, [_server, function(name, command) {
+      if(typeof command.legend !== 'string' || !Array.isArray(command.arguments) || typeof command.callback !== 'function')
+        fatal('Can\'t register invalid command "' + name + '"');
 
-    serversCommands[serverName || '__local'][name] = command;
-  }]);
+      serversCommands[serverName || window.serverName][name] = command;
+    }, function(path) {
+      if(!(/^([a-zA-Z0-9_\-\{\}\.\$\/]+)$/.test(path)))
+        return false;
+
+      var tr_file = _server.readFile('/apps/' + app + '/' + path.replace(/\$\{lang\}/g, language));
+
+      if(typeof tr_file !== 'string')
+        return false;
+
+      tr_file = JSON.parse(tr_file);
+      var keys = Object.keys(tr_file);
+
+      for(var i = 0; i < keys.length; i++)
+        tr_pkg[keys[i]] = tr_file[keys[i]];
+
+      return true;
+    }, clone(TOKEN || TOKENS.system /* fix a bug. Is that causing an issue ? */)]);
+
+    return true;
+  }
+
+  catch(e) {
+    console.error(e);
+    report_bug('Failed to start application ' + app + ' from server ' + (serverName || window.serverName), e.stack);
+    return returnError ? e : false;
+  }
 }
 
 /**
@@ -189,6 +255,7 @@ function saveGame() {
       time    : (new Date()).getTime(),
       data    : save.data,
       servers : _servers,
+      logged  : serverLogged,
       clock   : clock.getTime(),
       server  : serverName,
       scope   : game.diffScope(),
@@ -209,9 +276,10 @@ function saveGame() {
 /**
   * Backup the current save
   * @param {boolean} [allowDeletingOlder] Default: false
+  * @param {string} name Archive name
   * @return {string|void} String = error message (translated)
   */
-function backupSave(allowDeletingOlder) {
+function backupSave(allowDeletingOlder, name) {
   // Backup the previous save
   var lastSave = localStorage.getItem('haskier');
 
@@ -219,12 +287,16 @@ function backupSave(allowDeletingOlder) {
     return false;
 
   try {
-    if(localStorageFree() > lastSave.length + 16) {
-      var id = 1, name;
+    var id;
 
+    if(!name) {
+      id = 1, name;
       while(localStorage.getItem(name = backup_prefix + id))
         id++;
+    } else
+      name = backup_prefix + name;
 
+    if(localStorageFree() > lastSave.length + 16) {
       try { localStorage.setItem(name, lastSave); }
       catch(e) { console.error('Failed to backup last Haskier save\n' + e.stack); }
     } else {
@@ -269,6 +341,114 @@ function backupSave(allowDeletingOlder) {
     report_bug('')
     return false;
   }
+}
+
+/**
+  * Check if a TOKEN can catch an event
+  * @param {string} event
+  * @param {object} token
+  * @return {boolean}
+  */
+function tokenCatch(event, token) {
+  return (token.catch === '*' ? true : token.catch.indexOf(event) !== -1);
+}
+
+/**
+  * Check if a TOKEN can write a path
+  * @param {string} path
+  * @param {object} token
+  * @return {boolean}
+  */
+function tokenWrite(path, token) {
+  var i;
+  path = server.normalize(path, true);
+
+  if(token.include) {
+    for(i = 0; i < token.include.length; i++)
+      if(path.substr(0, token.include[i].length + 1) === token.include[i] + '/' || path === token.include[i])
+        return true;
+
+    return false;
+  } else /* if(token.exclude) */ {
+    for(i = 0; i < token.exclude.length; i++)
+      if(path.substr(0, token.exclude[i].length + 1) === token.exclude[i] + '/' || path === token.exclude[i])
+        return false;
+
+    return true;
+  }
+}
+
+/**
+  * Check if a TOKEN can read a path
+  * @param {string} path
+  * @param {object} token
+  * @return {boolean}
+  */
+function tokenRead(path, token) {
+  if(tokenWrite(path, token))
+    return true;
+
+  var i;
+  path = server.normalize(path, true);
+
+  if(token.includeRead) {
+    for(i = 0; i < token.includeRead.length; i++)
+      if(path.substr(0, token.includeRead[i].length + 1) === token.includeRead[i] + '/' || path === token.includeRead[i])
+        return true;
+
+    return false;
+  } else if(token.excludeRead) {
+    for(i = 0; i < token.excludeRead.length; i++)
+      if(path.substr(0, token.excludeRead[i].length + 1) === token.excludeRead[i] + '/' || path === token.excludeRead[i])
+        return false;
+
+    return true;
+  }
+}
+
+/**
+  * Display an error if TOKEN doesn't permit to catch an event
+  * @param {string} event
+  * @param {object} [token]
+  * @return {boolean}
+  */
+function needsCatch(event, token) {
+  if(!tokenCatch(event, token || TOKEN)) {
+    display_error(tr('You are not allowed to access event "${event}"', [event]));
+    return false;
+  }
+
+  return true;
+}
+
+/**
+  * Display an error if TOKEN doesn't permit to write a path
+  * @param {string} path
+  * @param {object} [token]
+  * @return {boolean}
+  */
+function needsWrite(path, token) {
+  if(!tokenWrite(path, token || TOKEN)) {
+    display_error(tr('You are not allowed to write "${path}"', [path || '/']));
+    return false;
+  }
+
+  return true;
+}
+
+/**
+  * Display an error if TOKEN doesn't permit to read a path
+  * @param {string} path
+  * @param {object} [token]
+  * @return {boolean}
+  */
+function needsRead(path, token) {
+  if(!tokenRead(path, token || TOKEN)) {
+    display_error(tr('You are not allowed to read "${path}"', [path || '/']));
+    return false;
+  }
+
+  return true;
 }
 
 /**
@@ -382,7 +562,7 @@ function treatQueue() {
   * @return {object|string}
   */
 function prepareArguments(args, expected) {
-  var prepare = [], arg, _ = args._, j = -1;
+  var prepare = [], arg, _ = args._, j = -1, subject;
 
   for(var i = 0; i < expected.length; i++) {
     arg = expected[i];
@@ -420,15 +600,24 @@ function prepareArguments(args, expected) {
       prepare.push(args[arg.long]);
     }
 
-    if((arg.regex && typeof prepare[prepare.length - 1] !== 'undefined' && typeof prepare[prepare.length - 1] !== 'string')
-    || (arg.regex && typeof prepare[prepare.length - 1] !== 'undefined' && !arg.regex.test(asPlain(prepare[prepare.length - 1])))
-    || (arg.check && typeof prepare[prepare.length - 1] !== 'undefined' && !arg.check(prepare[prepare.length - 1]))) {
-        return arg.error || tr('Bad value was specified for argument ${arg}', [
-          arg.short && arg.long ? '-' + arg.short + '|--' + arg.long :
-            arg.short ? '-' + arg.short :
-              arg.long ? '--' + arg.long :
-                i
-        ]);
+    subject = prepare[prepare.length - 1];
+    var regex;
+
+    if(arg.regex) {
+      if(!CompiledRegExp[arg.regex])
+        CompiledRegExp[arg.regex] = new RegExp('^' + arg.regex + '$');
+
+      regex = CompiledRegExp[arg.regex];
+    }
+
+    if((arg.regex && typeof subject !== 'undefined' && !regex.test(asPlain(subject)))
+    || (arg.check && typeof subject !== 'undefined' && !arg.check(subject))) {
+      return arg.error || tr('Bad value was specified for argument ${arg}', [
+        arg.short && arg.long ? '-' + arg.short + '|--' + arg.long :
+          arg.short ? '-' + arg.short :
+            arg.long ? '--' + arg.long :
+              /* i */ '`' + arg._ + '`'
+      ]);
     }
   }
 
@@ -445,6 +634,8 @@ function exec(cmd, callback, add) {
   var prepare, filter, filter_name, tmp, symbol, file, input;
   runningCmd = true;
   callback   = callback || function(){};
+
+  cmd = format(cmd);
 
   // If the '>' symbol is present within the command
   if((symbol = cmd.indexOf('>')) !== -1) {
@@ -481,13 +672,20 @@ function exec(cmd, callback, add) {
 
       // That's so bad but we have to delete the original 'add' content.
       // Normally that's not a problem because $add has a value only when using a filter...
-      add = server.readFile(input.trim());
 
-      if(typeof add !== 'string') {
-        runningCmd = false;
-        display_error(tr('Failed to read ${input} as input file', [input]));
-        callback();
-        return ;
+      input = input.trim();
+
+      if(input.substr(0, 1) === '$')
+        add = vars[input.substr(1)] || '';
+      else {
+        add = server.readFile(input.trim());
+
+        if(typeof add !== 'string') {
+          runningCmd = false;
+          display_error(tr('Failed to read ${input} as input file', [input]));
+          callback();
+          return ;
+        }
       }
     }
   }
@@ -529,7 +727,7 @@ function exec(cmd, callback, add) {
 
   if(!commands.hasOwnProperty(cmd.$)) {
     runningCmd = false;
-    display_error(tr('command not found : ${cmd}', [cmd.$]));
+    display_error(tr('command not found : ${cmd}', [fescape(cmd.$)]));
     callback();
     return ;
   }
@@ -561,7 +759,12 @@ function exec(cmd, callback, add) {
           outputFilter = function(txt) { buff_out.push(txt); };
           exec(filter, function() {
             outputFilter = false;
-            server.writeFile(file, buff_out.join('\n'));
+            if(file.substr(0, 1) === '$')
+              vars[file.substr(1)] = buff_out.join('\n');
+            else {
+              if(needsWrite(file))
+                server.writeFile(file, buff_out.join('\n'));
+            }
             callback();
           }, cmd_out.join('\n'));
         } else {
@@ -571,7 +774,12 @@ function exec(cmd, callback, add) {
         }
       } else if(file) {
         outputFilter = false;
-        server.writeFile(file, cmd_out.join('\n'));
+        if(file.substr(0, 1) === '$')
+          vars[file.substr(1)] = cmd_out.join('\n');
+        else {
+          if(needsWrite(file))
+            server.writeFile(file, cmd_out.join('\n'));
+        }
         callback.apply(this, arguments);
       } else
         callback.apply(this, arguments);
@@ -599,7 +807,12 @@ function exec(cmd, callback, add) {
         outputFilter = function(txt) { buff_out.push(txt); };
         exec(filter, function() {
           outputFilter = false;
-          server.writeFile(file, buff_out.join('\n'));
+          if(file.substr(0, 1) === '$')
+            vars[file.substr(1)] = buff_out.join('\n');
+          else {
+            if(needsWrite(file))
+              server.writeFile(file, buff_out.join('\n'));
+          }
           callback.apply(this, arguments);
         }, cmd_out.join('\n'));
       } else {
@@ -608,7 +821,12 @@ function exec(cmd, callback, add) {
       }
     } else if(file) {
       outputFilter = false;
-      server.writeFile(file, cmd_out.join('\n'));
+      if(file.substr(0, 1) === '$')
+        vars[file.substr(1)] = cmd_out.join('\n');
+      else {
+        if(needsWrite(file))
+          server.writeFile(file, cmd_out.join('\n'));
+      }
       callback.apply(this, arguments);
     } else
       callback.apply(this, arguments);
@@ -676,8 +894,8 @@ function parseCommand(cmd) {
   * Update the entire UI
   */
 function updateUI() {
-  updatePrompt();
   $('.terminal, .cmd').css('font-family', (save.data.font ? save.data.font + ', ' : '') + 'Consolas, Courier, "Inconsolata"');
+  updatePrompt();
 
   if(save.data.lineWaiting)
     readingLineDuration = save.data.lineWaiting;
@@ -693,18 +911,33 @@ function updateUI() {
   * Update the terminal's prompt
   */
 function updatePrompt() {
-  if(game && !game.getVar('dont_update_prompt'))
-    term.set_prompt(format('${green:${name}}:${blue:' + server.chdir() + '}$ '));
+  if(game && !game.getVar('dont_update_prompt')) {
+    vars.cwd = server.chdir();
+
+    var prompt = (save.data.prompt || '${green:${user}}${cyan:@${server}}:${blue:${cwd}}$ ').split('\n');
+
+    if(prompt.length > 1)
+      display(prompt.splice(0, prompt.length - 1).join('\n'));
+
+    term.set_prompt(format(prompt[0]));
+  }
 }
 
 /**
   * Update the server
   * @param {string} name
+  * @param {string} user
   */
-function updateServer(name) {
-  serverName = name;
-  server     = servers[name];
-  commands   = serversCommands[name];
+function updateServer(name, user) {
+  serverName     = name;
+  server         = servers[name];
+  commands       = serversCommands[name];
+  vars['server'] = (serverName.substr(0, 2) === '__' ? serverName.substr(2) : serverName);
+
+  var token_name = server.readJSON('.sys/server.sys').users[user].token;
+  TOKEN          = (typeof token_name === 'string' ? clone(TOKENS[token_name]) : token_name);
+  serverUser     = user;
+  vars['user' ]  = user;
 }
 
 var queue      = [];           // Commands' queue
@@ -712,12 +945,15 @@ var runningCmd = false;        // Is running a command ?
 var vars       = {};           // All shell variables
 var server     ;               // Current server's entity
 var serverName ;               // Current server's name
+var serverUser ;               // Player is logged as user...
+var TOKEN      ;               // Player's token
+var serverLogged = [];         // Names of logged in servers
 var networks   = {};           // All networks instances
 
 // Define #terminal as a terminal
 var term = $('#terminal').terminal(function(cmd, term) {
   // Fix an unknown bug
-  if(cmd.substr(0, 5) === '[i;;]')
+  if(cmd.substr(0, 5) === '[i;;]' || cmd.substr(0, 4) === 'i;;]')
     return ;
 
   // If there is a catch callback
@@ -815,7 +1051,7 @@ var term = $('#terminal').terminal(function(cmd, term) {
 
       // We add an asterisc, else search engine will think we want to find files with THIS filename
       // The '*' means "all filenames whichs starts by what we've given"
-      completion = names.concat(server.glob(last/*base*/ + '*', ['names_list', 'add_folders_slash']));
+      completion = names.concat(server.glob(last/*base*/ + '*', ['names_list', 'add_folders_slash', 'relative_path']));
     }
 
     if(!completion.length)
@@ -912,6 +1148,26 @@ if(!is_save) {
 // updateUI();
 
 vars.scope  = scope;
+
+// Define the TOKENS collection
+// WARNING: Do NOT end a path by a slash
+// EXEMPLE: include: ['/'] -> exclude: []
+var TOKENS = {
+  system: {
+    catch: '*',
+    exclude: []
+  },
+
+  user: {
+    catch: '*',
+    exclude: ['/.sys']
+  },
+
+  guest: {
+    catch: [],
+    include: ['/users/${user}']
+  }
+};
 
 // Define some callbacks
 var afterCommand, catchCommand, keydownCallback;
