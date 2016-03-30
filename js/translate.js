@@ -9,7 +9,7 @@ var tr_pkg = (function() {
     return {};
 
   var req = $.ajax({
-    url  : 'com/get-translation.run?lang=' + target,
+    url  : 'com/translations/' + target + '.json',
     cache: false,
     async: false
   });

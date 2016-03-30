@@ -1,5 +1,5 @@
 {
-    "description": "AppShop for CenturyCode",
+    "description": "Serveur maître Anonymas",
     "ssh": false,
     "networks": {
       "hypernet": {

@@ -1,0 +1,45 @@
+
+register('ssh-hack', {
+  legend   : 'Hacker un serveur',
+  async    : true,
+  arguments: [
+    {
+      _       : 'IP',
+      legend  : 'Adresse IP du serveur',
+      required: true,
+      regex   : RegexCollection.IP
+    }
+  ],
+  callback : function(IP,resolve) {
+    display('Recherche du serveur...');
+
+    setTimeout(function() {
+      if(!servers.hasOwnProperty(IP))
+        return resolve('${red:Le serveur demandé n\'existe pas}');
+
+      display('Tentative de connexion...');
+
+      setTimeout(function() {
+        var sys = servers[IP].readJSON('/.sys/server.sys');
+
+        if(!sys.networks.hasOwnProperty('hypernet'))
+          return resolve('${red:Le serveur demandé n\'est pas connecté à ${hypernet}}');
+
+        if(sys.ssh === false)
+          return resolve('${red:Le serveur n\'accepte pas les requêtes SSH}');
+
+        if(sys.hacksecure.length)
+          return resolve('${red:Le serveur demandé possède trop de protections pour être atteint}');
+
+        display('Récupération des informations...');
+
+        setTimeout(function() {
+          display('=== Identifiant ===');
+          display('Utilisateur  : guest');
+          display('Mot de passe : ' + sys.users.guest.password);
+          resolve('======= Fin =======');
+        }, 3000);
+      }, 4000);
+    }, 1000);
+  }
+});

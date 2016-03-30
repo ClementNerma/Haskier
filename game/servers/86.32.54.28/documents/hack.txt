@@ -1,0 +1,10 @@
+Messieurs les hackers,
+Je suis étudiant à Paris et j'ai 17 ans.
+Vous vous croyez les meilleurs ? Voici la preuve que non.
+J'ai récupéré le fichier contenant la liste de vos membres.
+Si vous voulez des preuves, je vais vous en donner.
+Mais si vous voulez que je passe sous silence vos activités, vous allez devoir répondre à mes attentes.
+Vous pouvez me contacter par vous-même en retraçant mes coordonnées, n'est-ce pas ?
+Je vous attends.
+
+${name}.

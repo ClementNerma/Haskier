@@ -19,6 +19,7 @@ var   humanSpeed          = 80;
 const backup_prefix       = 'hsk_arch_';
 
 var clone = (new Server('@model')).clone;
+delete servers['@model'];
 
 /**
   * Start the game !
@@ -37,7 +38,7 @@ function ready() {
     if(!justRestoredLabel) {
       saveGame();
 
-      if(step.data === 'checkpoint') {
+      if(step.data === 'checkpoint' && !save.data.noAutoBackup) {
         var err = backupSave();
         if(err) console.error(err);
       }
@@ -47,7 +48,7 @@ function ready() {
 
   game.event('display', function(text, i, code) {
     if(game.getVar('human_talking'))
-      scope.human(game.getVar('human_talking') + ' :  ' + text);
+      scope.human(game.getVar('human_talking') + ' : ' + text);
     else {
       ignoreKeys = true;
       term.set_prompt('');
@@ -89,20 +90,50 @@ function ready() {
     }
   }
 
-  if(!save.time && haskier['install.js']) { var sys;
+  if(!save.time && haskier['install.js']) { var sys, users, j;
     console.log('Running installation program...');
 
     for(i = 0; i < names.length; i++) {
       server = servers[names[i]];
       TOKEN  = clone(TOKENS.system);
-      sys    = server.readJSON('.sys/server.sys');
 
+      if(!server.dirExists('/.sys')) {
+        console.warn('[' + names[i] + '] doesn\'t have a `.sys` folder. It will be created with arbitrary users and no network connection.');
+        server.mkdir('/.sys');
+        server.writeFile('/.sys/server.sys', {});
+      }
+
+      // Generate server informations
+      sys    = server.readJSON('/.sys/server.sys');
+      sys.users = sys.users || {};
       sys.users.system = {password: server.randomPassword(), token: TOKENS['system']};
       sys.users.guest  = {password: server.randomPassword(), token: TOKENS['guest' ]};
-      server.writeFile('.sys/server.sys', sys);
+      sys.hacksecure = sys.hacksecure || [];
 
+      // Make users directories
+      users = Object.keys(sys.users);
+      server.mkdir('/users');
+
+      for(j = 0; j < users.length; j++) {
+        server.mkdir('/users/' + users[j]);
+        server.mkdir('/users/' + users[j] + '/documents');
+        server.mkdir('/users/' + users[j] + '/downloads');
+        sys.users[users[j]].home = sys.users[users[j]].home || '/users/' + users[j];
+      }
+
+      server.writeFile('/.sys/server.sys', sys);
+      server.hide('/.sys');
+
+      // Make default folders
       if(!server.dirExists('/apps'))
         server.mkdir('/apps');
+      server.hide('/apps');
+
+      if(!server.dirExists('/env'))
+        server.mkdir('/env');
+
+      // This is a micro-script to test if the user can access to environment scripts
+      server.writeFile('/env/is-env.hss', 'echo Environment scripts are supported.');
     }
 
     window.eval(haskier['install.js']);
@@ -115,7 +146,7 @@ function ready() {
     display(tr('Starting up server ${num} of ${total}...', [i + 1, names.length]))
 
     d = Date.now();
-    apps = servers[names[i]].glob('apps/*/app.hps');
+    apps = servers[names[i]].glob('/apps/*/app.hps');
     serversCommands[names[i]] = clone(_commands);
 
     //startApp(apps[j].vars[0], names[i]);
@@ -170,7 +201,13 @@ function ready() {
   clockRefresh();
 
   term.clear();
-  updateServer(save.server || '__local', save.user || 'Shaun');
+
+  if(save.logged && save.logged.length) {
+    var logged = save.logged[save.logged.length - 1];
+    updateServer(logged[0], logged[1]);
+  } else
+    updateServer('__local', 'Shaun');
+
   updateUI();
 
   gameStarted = true;
@@ -346,22 +383,25 @@ function backupSave(allowDeletingOlder, name) {
 /**
   * Check if a TOKEN can catch an event
   * @param {string} event
-  * @param {object} token
+  * @param {object} [token]
   * @return {boolean}
   */
 function tokenCatch(event, token) {
+  token = token || TOKEN;
   return (token.catch === '*' ? true : token.catch.indexOf(event) !== -1);
 }
 
 /**
   * Check if a TOKEN can write a path
   * @param {string} path
-  * @param {object} token
+  * @param {object} [token]
   * @return {boolean}
   */
 function tokenWrite(path, token) {
   var i;
-  path = server.normalize(path, true);
+
+  path  = server.normalize(path, true);
+  token = token || TOKEN;
 
   if(token.include) {
     for(i = 0; i < token.include.length; i++)
@@ -369,24 +409,24 @@ function tokenWrite(path, token) {
         return true;
 
     return false;
-  } else /* if(token.exclude) */ {
+  } else if(token.exclude) {
     for(i = 0; i < token.exclude.length; i++)
       if(path.substr(0, token.exclude[i].length + 1) === token.exclude[i] + '/' || path === token.exclude[i])
         return false;
 
     return true;
-  }
+  } else
+    return true;
 }
 
 /**
   * Check if a TOKEN can read a path
   * @param {string} path
-  * @param {object} token
+  * @param {object} [token]
   * @return {boolean}
   */
 function tokenRead(path, token) {
-  if(tokenWrite(path, token))
-    return true;
+  token = token || TOKEN;
 
   var i;
   path = server.normalize(path, true);
@@ -403,7 +443,8 @@ function tokenRead(path, token) {
         return false;
 
     return true;
-  }
+  } else
+    return true;
 }
 
 /**
@@ -413,7 +454,7 @@ function tokenRead(path, token) {
   * @return {boolean}
   */
 function needsCatch(event, token) {
-  if(!tokenCatch(event, token || TOKEN)) {
+  if(!tokenCatch(event, token)) {
     display_error(tr('You are not allowed to access event "${event}"', [event]));
     return false;
   }
@@ -428,7 +469,7 @@ function needsCatch(event, token) {
   * @return {boolean}
   */
 function needsWrite(path, token) {
-  if(!tokenWrite(path, token || TOKEN)) {
+  if(!tokenWrite(path, token)) {
     display_error(tr('You are not allowed to write "${path}"', [path || '/']));
     return false;
   }
@@ -443,7 +484,7 @@ function needsWrite(path, token) {
   * @return {boolean}
   */
 function needsRead(path, token) {
-  if(!tokenRead(path, token || TOKEN)) {
+  if(!tokenRead(path, token)) {
     display_error(tr('You are not allowed to read "${path}"', [path || '/']));
     return false;
   }
@@ -498,16 +539,35 @@ function makeRegex(str) {
   * Run a command
   * @param {string} cmd
   * @param {*} [add] Additionnal data
+  * @param {boolean} [now] Run after the current command
   */
-function command(cmd, add) {
+function command(cmd, add, now) {
   if(!cmd)
     return ;
 
-  queue.push([cmd, add]);
+  cmd = cmd.split(/&&|\n/);
+
+  if(cmd.length === 1) {
+    if(cmd[0].trim().substr(0, 1) !== '#')
+      queue[now ? 'unshift' : 'push']([cmd[0], add]);
+  } else {
+    if(now)
+      cmd = cmd.reverse();
+    for(var i = 0; i < cmd.length; i++)
+      if(cmd[i].trim().substr(0, 1) !== '#' && cmd[i].trim().length)
+        queue[now ? 'unshift' : 'push']([cmd[i], add]);
+  }
 
   if(!runningCmd)
     treatQueue();
 }
+
+/**
+  * Run a command after the current
+  * @param {string} cmd
+  * @param {*} [add] Additionnal data
+  */
+function command_now(cmd, add) { return command(cmd, add, true); }
 
 /**
   * Treat commands' queue
@@ -631,17 +691,17 @@ function prepareArguments(args, expected) {
   * @param {*} [add] Additionnal data
   */
 function exec(cmd, callback, add) {
-  var prepare, filter, filter_name, tmp, symbol, file, input;
+  var prepare, filter, filter_name, tmp, symbol, file, input, original = cmd;
   runningCmd = true;
   callback   = callback || function(){};
 
-  cmd = format(cmd);
+  cmd = format(cmd.trim());
 
   // If the '>' symbol is present within the command
   if((symbol = cmd.indexOf('>')) !== -1) {
     // Check it's not between quotes
     file   = cmd.substr(cmd.indexOf('>') + 1);
-    tmp    = cmd.substr(0, symbol - 1);
+    tmp    = cmd.substr(0, symbol);
     tmp    = tmp.split('"').length / 2 - 0.5;
 
     // If there is the same number of double quotes before the redirection symbol...
@@ -659,7 +719,7 @@ function exec(cmd, callback, add) {
   if((symbol = cmd.indexOf('<')) !== -1) {
     // Check it's not between quotes
     input  = cmd.substr(cmd.indexOf('<') + 1);
-    tmp    = cmd.substr(0, symbol - 1);
+    tmp    = cmd.substr(0, symbol);
     tmp    = tmp.split('"').length / 2 - 0.5;
 
     // If there is the same number of double quotes before the redirection symbol...
@@ -725,11 +785,27 @@ function exec(cmd, callback, add) {
   callback = callback || function(){};
   cmd      = parseCommand(cmd);
 
+  // If the command is not found
   if(!commands.hasOwnProperty(cmd.$)) {
-    runningCmd = false;
-    display_error(tr('command not found : ${cmd}', [fescape(cmd.$)]));
-    callback();
-    return ;
+    if(tokenRead('/env/' + cmd.$ + '.hss') && server.fileExists('/env/' + cmd.$ + '.hss')) {
+      // If /env/${path}.hss exist
+      command_now(server.readFile('/env/' + cmd.$ + '.hss'));
+      runningCmd = false;
+      callback.apply(this, arguments);
+      return ;
+    } else if(tokenRead(cmd.$ + '.hss') && server.fileExists(cmd.$ + '.hss')) {
+      // If /${path}.hss exist
+      command_now(server.readFile(cmd.$ + '.hss'));
+      runningCmd = false;
+      callback.apply(this, arguments);
+      return ;
+    } else {
+      // Else : the command was not found
+      runningCmd = false;
+      display_error(tr('command not found : ${cmd}', [fescape(cmd.$)]));
+      callback();
+      return ;
+    }
   }
 
   var call = commands[cmd.$];
@@ -903,7 +979,12 @@ function updateUI() {
   if(save.data.writingSpeed)
     humanSpeed = save.data.writingSpeed;
 
-  if(fastMode) { readingLineDuration = humanSpeed = 0; }
+  if(fastMode) {
+    readingLineDuration = 0;
+
+    if(query['fast-human'])
+      humanSpeed = 0;
+  }
   //$('#infos')[save.data.showInfobar ? 'show' : 'hide']();
 }
 
@@ -934,10 +1015,13 @@ function updateServer(name, user) {
   commands       = serversCommands[name];
   vars['server'] = (serverName.substr(0, 2) === '__' ? serverName.substr(2) : serverName);
 
-  var token_name = server.readJSON('.sys/server.sys').users[user].token;
+  var users      = server.readJSON('/.sys/server.sys').users;
+  var token_name = users[user].token;
   TOKEN          = (typeof token_name === 'string' ? clone(TOKENS[token_name]) : token_name);
   serverUser     = user;
   vars['user' ]  = user;
+
+  server.chdir(users[user].home);
 }
 
 var queue      = [];           // Commands' queue
@@ -953,7 +1037,7 @@ var networks   = {};           // All networks instances
 // Define #terminal as a terminal
 var term = $('#terminal').terminal(function(cmd, term) {
   // Fix an unknown bug
-  if(cmd.substr(0, 5) === '[i;;]' || cmd.substr(0, 4) === 'i;;]')
+  if(cmd.substr(0, 5) === '[i;;]' || cmd.substr(0, 4) === 'i;;]' || cmd.substr(0, 3) === 'i;;')
     return ;
 
   // If there is a catch callback
@@ -1000,6 +1084,12 @@ var term = $('#terminal').terminal(function(cmd, term) {
         keydownCallback = callback;
 
       // Prevent the key event
+      return false;
+    }
+
+    // Exception for '&' which is deleted by jQuery.terminal for an unknown reason
+    if(e.keyCode === 49) {
+      term.set_command(term.get_command() + '&');
       return false;
     }
 
@@ -1154,18 +1244,19 @@ vars.scope  = scope;
 // EXEMPLE: include: ['/'] -> exclude: []
 var TOKENS = {
   system: {
-    catch: '*',
-    exclude: []
+    catch: '*'
   },
 
   user: {
     catch: '*',
-    exclude: ['/.sys']
+    exclude: ['/.sys'],
+    excludeRead: ['/.sys', '/apps']
   },
 
   guest: {
     catch: [],
-    include: ['/users/${user}']
+    include: ['/users/guest'],
+    includeRead: ['/users/guest']
   }
 };
 

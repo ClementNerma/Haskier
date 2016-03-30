@@ -1,3 +1,25 @@
+We 30-03-2016
+Haskier b-0.2
+- NEW : Mission 01
+- Haskier can now run with Apache+PHP or Node.js
+- Scripts can now be runned without their extension if they are in the `/env` directory or in the current folder
+- Improved tokens support
+- Added server's securities support
+- Added the Shaun's hacking tool
+
+*** === Misc === ***
+- Many commands can be typed in the same line, using the '&&' operator
+- Added HSF commands `incoming`, `incomingEnd`, `download`, `taken` and `exec`
+- Improved translations loading speed
+- Removed `@model` server from save
+
+*** === Bug fixes === ***
+- Fixed a bug with commands starting by a space (' echo Hi !' was causing an error)
+- Fixed a bug : When come back to the game, trying to connect to the wrong server
+- Fixed 2 bugs with flux redirections ('>' and '<' operators)
+- Fixed a bug : When come back to the game and save go to a sub-root folder (ex: /apps), the path was causing an error because the system was reading '.sys/server.sys' as a relative path => /apps/.sys/server.sys
+- Fixed a bug with multiple-lines shell scripts
+
 Fr 25-03-2016
 Haskier b-0.1
 - Added web page's in-scripts support

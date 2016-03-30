@@ -8,7 +8,7 @@ register('ssh', {
       _       : 'IP',
       legend  : tr('Server\'s IP'),
       required: true,
-      regex   : !save.data.hacker ? RegexCollection.IP : '.*'
+      regex   : !(save.data && save.data.hacker) ? RegexCollection.IP : '.*'
     },
     {
       _       : 'username',

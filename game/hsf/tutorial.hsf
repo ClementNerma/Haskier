@@ -11,10 +11,10 @@ if(menu is 1)
   "Afin de leur prouver que vous êtes doué en piratage, vous vous infiltrez sur l'un de leurs serveurs privés et récupérez la liste de leurs membres."
   "Vous leur laissez un message leur disant que si ils veulent que vous gardiez secret cette liste, ils devront répondre à vos attentes."
   "Pour vous joindre, ils doivent utiliser votre adresse IP que vous avez laissé à leur disposition sur leur serveur."
-  wait(1000)
+  sleep(1000)
   "\n${f_grey,italic:=== Comment jouer ? ===}\n"
   "Dans ${haskier}, vous disposez d'une interface nommée ${italic:ligne de commande}."
-  "Il s'agit d'une interface dans lequel s'affichent des messages et dans laquelle vous pouvez saisir des ${italic:commandes}."
+  "Il s'agit d'une interface dans laquelle s'affichent des messages et dans laquelle vous pouvez saisir des ${italic:commandes}."
   "Ces ${italic:commandes} vous permettent d'effectuer diverses actions"
   "Comme communiquer avec quelqu'un, récupérer un fichier sur un serveur, vous connecter à un autre ordinateur, etc."
   "Si vous avez déjà utilisé des outils comme un ${italic:Terminal} sous Linux ou Mac OS,"
@@ -36,21 +36,22 @@ else if(menu is 2)
   "Votre partie est automatiquement sauvegardée lorsque vous rentrez une commande."
   "Cependant, l'interruption de la partie pendant qu'une action scénaristique (moment où vous ne pouvez pas exécuter de commande) est en cours peut entraîner"
   "La corruption de votre sauvegarde de jeu. Afin d'éviter cela, attendez que vous ayez repris le contrôle de l'invite de commandes avant de quitter le jeu."
+  "\nPour plus d'informations, consultez la partie ${bold:Comment restaurer sa partie après un Game Over}"
 else if(menu is 3)
   "\n${f_grey,italic:=== Comment restaurer sa partie après un Game Over ===}\n"
   "Après avoir un message de ${f_red,bold:Game Over} affiché à l'écran, suivez les instructions pour réinitialiser votre partie. Le jeu va recommencer depuis le début."
   "Dès que vous avez la main sur l'invite de commandes, tapez la commande <${cyan:save}> et choisissez l'option numéro ${bold:2}."
-  "Choisissez l'une des sauvegardes disponibles et entrez son numéro pour la restaurer. Votre partie sera alors restaurée."
+  "Choisissez l'une des sauvegardes disponibles et entrez son numéro pour la restaurer. Votre partie sera alors rétablie."
   "Notez que des copies de votre sauvegarde sont régulièrement effectuées, à des points-clés du jeu, afin de ne pas vous faire perdre trop de progression."
 else if(menu is 4)
   "\n${f_grey,italic:=== Serveurs et réseaux ===}\n"
   "Les ${cyan:serveurs} sont des ordinateurs qui peuvent se connecter à un ou plusieurs ${cyan:réseaux}."
-  "Un réseau est comparable au fonctionnement d'internet. Le principal réseau d'$haskier est le réseau ${hypernet}."
-  "Géré par une grande entreprise de renommée internationale, ce réseau permets l'échange de certains fichiers entre tous les serveurs connectés à ce réseau."
+  "Un réseau est comparable au fonctionnement d'internet. Le principal réseau d'${haskier} est le réseau ${hypernet}."
+  "Géré par une grande entreprise de renommée internationale, ce réseau permet l'échange de certains fichiers entre tous les serveurs connectés à ce réseau."
   "${bold:NOTE :} Votre ordinateur personnel est également un serveur."
 else if(menu is 5)
   "Votre ordinateur peut se connecter à une boutique d'applications en ligne nommée ${f_cyan,italic:Century Store}."
-  "Elle vous permets de télécharger de nouvelles applications qui augmenteront les capacités de votre machine."
+  "Elle vous permet de télécharger de nouvelles applications qui augmenteront les capacités de votre machine."
   "Pour y accéder, tapez la commande <${cyan:store}> et suivez les instructions qui s'affichent à l'écran."
   "${bold:NOTE :} Vous n'aurez jamais à payer avec de l'argent réel dans le jeu."
 else if(menu is 6)
@@ -94,8 +95,8 @@ else if(menu is 7)
         "Réeffectuez ce test dès à présent."
       else
         "Le manque d'espace de stockage peut vous empêcher de sauvegarder."
-        "Afin de ne pas être empêché de sauvegarder, utilisez la commande <${cyan:save-manager --no-backup}>"
-        wait(1000)
+        "Afin de ne pas être empêché de sauvegarder, utilisez la commande <${cyan:save}> et choisissez de désactiver l'auto-archivage des sauvegardes"
+        sleep(1000)
       endif
     endif
   else
@@ -105,6 +106,6 @@ endif x7
 
 if(menu isnt 8)
   display(" ")
-  wait("Appuyez sur une touche")
+  sleep("Appuyez sur une touche")
   repeat()
 endif

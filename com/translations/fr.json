@@ -1,3 +1,4 @@
+
 {
   "$_date": "fr-FR",
 
@@ -22,6 +23,7 @@
   "Century Code Package Manager": "Gestionnaire de paquets de Century Code",
   "Run a script or a command": "Exécuter un script ou une commande",
   "Sleep the script during a while": "Mettre le script en pause",
+  "Display only lines wich contains a text": "Afficher uniquement les lignes contenant un texte donné",
 
   "New name": "Nouveau nom",
   "Variable's name": "Nom de la variable",
@@ -47,6 +49,9 @@
   "Script's path or command's content (require ${grey:--eveal})": "Chemin du script ou commande (requiert ${grey:--eval})",
   "Evaluate the content as a command": "Exécuter le contenu comme une commande",
   "Sleep duration, in ms. If omitted, will sleep during 1000 ms.": "Temps de veille, en millisecondes. Si omis, le script sera en pause pendant 1000 ms.",
+  "Text to search": "Texte à rechercher",
+  "Consider text as a regex": "Parser le texte comme une regex",
+  "Display details for each file and folder": "Afficher les détails pour chaque fichier et dossier",
 
   "command not found : ${cmd}": "commande non trouvée : ${cmd}",
   "A bug has been detected. Would you like to report it ?\n\nDetails :\n${err}\n\n${vars}": "Un bug a été détecté. Voulez-vous le reporter ?\n\nDétails :\n${err}\n\n${vars}",
@@ -113,6 +118,8 @@
   "${filter} is not a filter": "${filter} n'est pas un filtre",
   "Failed to read ${input} as input file": "Impossible de lire ${input} comme fichier d'entrée",
   "Internal server error": "Erreur interne du serveur",
+  "`with` filter requires an input": "Le filtre `with` requiert des données d'entrée",
+  "Bad regex was specified": "La regex spécifiée est invalide",
 
   "Bad action specified": "L'action spécifiée est invalide",
   "Bad application's name specified": "Le nom d'application spécifié est invalide",
@@ -160,6 +167,9 @@
   "There is not enough space to backup save without deleting older ones": "Il n'y a pas assez d'espace pour archiver la sauvegarde sans supprimer les anciennes",
   "No date found": "Sans date",
   "Auto backup ${n}": "Archive auto ${n}",
+  "Disable": "Désactiver",
+  "Enable": "Activer",
+  "auto-save backup": "l'auto-archivage des sauvegardes",
 
    "${f_red,bold:You failed.} ${f_red,bold,italic:Game Over}.\nType \"${red,bold${str}}\" to recognize your defeat. Goodbye, ${italic,bold:${name}} !" :"${f_red,bold:Vous avez échoué.} ${f_red,bold,italic:Game Over}.\nTapez \"${red,bold:${str}}\" pour reconnaître votre défaite. Adieu, ${italic,bold:${name}} !",
    "I told you to type ${f_red,bold:${str}}": "Je vous ai dit d'écrire ${f_red,bold:${str}}",
@@ -169,5 +179,8 @@
 
    "Return to your home SSH server": "Retourne à votre serveur SSH home",
    "Welcome back to home, ${name} !": "Bienvenue chez vous, ${name} !",
-   "You're not connected to any SSH server. You will be redirected to your home server.": "Vous n'êtes connecté à aucun serveur SSH. Vous allez être redirigé vers votre serveur home."
+   "You're not connected to any SSH server anymore. You will be redirected to your home server.": "Vous n'êtes plus connecté à aucun serveur SSH. Vous allez être redirigé vers votre serveur home.",
+
+   "=== Incoming communication ===": "=== Communication entrante ===",
+   "=== Communication's end ===": "=== Fin de la communication ==="
 }

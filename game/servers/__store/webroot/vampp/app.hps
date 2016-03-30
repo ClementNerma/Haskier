@@ -26,7 +26,7 @@ register('vampp', {
         response.content         = tr('Requested file was not found');
         response.end();
 
-        console.debug(file);
+        console.debug(file, $TOKEN);
         return ;
       }
 

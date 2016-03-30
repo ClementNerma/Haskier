@@ -1,6 +1,5 @@
 {
     "description": "Master Hypernet server",
-    "users": {},
     "ssh": false,
     "networks": {
       "hypernet": {

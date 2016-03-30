@@ -1,0 +1,8 @@
+{
+  "description": "Serveur de test Anonymas n°2",
+  "networks": {
+    "hypernet": {
+      "speed": 256
+    }
+  }
+}

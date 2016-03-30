@@ -457,9 +457,10 @@ var _commands = {
         tr('Backup the current save'),
         tr('Restore a save backup'),
         tr('(!) Restart the game'),
+        tr(save.data.noAutoBackup ? 'Enable' : 'Disable') + ' ' + tr('auto-save backup'),
         tr('${cyan:' + tr('Cancel') + '}')
       ], function(ans) {
-        if(ans === 4)
+        if(ans === 5)
           return resolve();
 
         display('');
@@ -518,12 +519,12 @@ var _commands = {
               if(ans === (_sm_saves.length) + 1)
                 return resolve();
 
-              var save = _sm_saves_json[vars.choice - 1];
+              var save = _sm_saves_json[ans - 1];
 
               if(!save)
                 return resolve('${red:' + tr('Unable to restore a corrupted backup') + '}');
 
-              localStorage.setItem('haskier', save.save);
+              localStorage.setItem('haskier', JSON.stringify(save));
 
               window.location.reload();
             });
@@ -543,6 +544,11 @@ var _commands = {
 
             break;
 
+          case 4:
+            save.data.noAutoBackup = !save.data.noAutoBackup;
+            display(tr('Done.'));
+            resolve();
+            break;
         }
       });
     }
@@ -582,8 +588,8 @@ var _commands = {
       if(!name.match(/^[a-zA-Z0-9_\-]+$/))
         return resolve('${red:' + tr('Bad application\'s name specified') +'}');
 
-      if(!needsRead('/apps/' + name))
-        return ;
+      /*if(!needsRead('/apps/' + name))
+        return resolve();*/
 
       var has = server.dirExists('/apps/' + name), err;
 
@@ -702,13 +708,9 @@ var _commands = {
 
         if(typeof path !== 'string')
           return display_error('Failed to read file');
+      }
 
-        path = path.split('\n');
-
-        for(var i = path.length - 1; i >= 0; i--)
-          queue.unshift([path[i], null]);
-      } else
-        queue.unshift([path, null]);
+      command_now(path);
     }
   },
 
@@ -736,7 +738,7 @@ var _commands = {
       var target = serverLogged[serverLogged.length - 1];
 
       if(!target) {
-        display(tr('You\'re not connected to any SSH server. You will be redirected to your home server.'));
+        display(tr('You\'re not connected to any SSH server anymore. You will be redirected to your home server.'));
         queue.unshift(['ssh-home']);
       } else {
         updateServer(target[0], target[1]);
@@ -758,7 +760,7 @@ var _commands = {
   /* Filters */
 
   with: {
-    legend   : tr('Display only lines with contains a text'),
+    legend   : tr('Display only lines wich contains a text'),
     inputflux: true,
     arguments: [
       {

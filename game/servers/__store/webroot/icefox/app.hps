@@ -46,7 +46,7 @@ register('icefox', {
         return display_error(tr('This server doesn\'t exist or isn\'t connected to hypernet'));
     } else {
       // use Hypernet DNS
-      // here, we have to set the IP adress
+      // here, we have to find the IP adress
       var parsed = networks.hypernet.parseUrl(url);
 
       if(!parsed)
@@ -57,8 +57,8 @@ register('icefox', {
     }
 
     var content = '', eq, barSize = 50, finalUrl = url.split(/\//)[url.split(/\//).length - 1];
-    if(dw && typeof dw !== 'string') dw = finalUrl;
-    
+    if(dw && typeof dw !== 'string') dw = format('/users/${user}/downloads/') + finalUrl;
+
     if(dw && !needsWrite(dw))
       return resolve();
 
@@ -76,7 +76,7 @@ register('icefox', {
       },
       success : function(content) {
         if(dw) {
-          if(!server.writeFile(typeof dw === 'string' ? dw : finalUrl, content))
+          if(!server.writeFile(dw, content))
             resolve('${red:' + tr('Unable to write the download\'s location') + '}');
           else
             resolve(tr('Download has finished successfully'));

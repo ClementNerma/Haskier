@@ -17,7 +17,7 @@ var scope = {
 
   question: function(msg) {
     dontRecoverPrompt = true;
-    question(game.getVar('ALLOW_TRANSLATION') ? tr(msg) : msg, function(answer) {
+    question(game.getVar('ALLOW_TRANSLATION') ? tr(msg || '') : (msg || ''), function(answer) {
       // Question callback
       term.set_prompt(''); // Improving prompt
       game.setVar('answer', answer);
@@ -99,7 +99,7 @@ var scope = {
       justRestored = true; // put it here or in {if(game.goLabel) ???}
     } else if(fastdev && query.label) {
       if(!game.goLabel(query.label))
-        console.error('[DEV] Failed to go to label "' + save.label + '"');
+        console.error('[DEV] Failed to go to label "' + query.label + '"');
 
       justRestoredLabel = false;
     }
@@ -141,8 +141,10 @@ var scope = {
       saveGame();
     } else justRestored = false;
 
-    if(fastdev && query.exec)
+    if(fastdev && query.exec) {
       command(query.exec);
+      query.exec = null;
+    }
   },
 
   goto: function(label) {
@@ -160,7 +162,7 @@ var scope = {
     go();
   },
 
-  wait: function(time) {
+  sleep: function(time) {
     if(typeof time === 'string') {
       display(time);
       keydownCallback = go;
@@ -230,5 +232,41 @@ var scope = {
         window.location.reload();
     };*/
 
+  },
+
+  incoming: function(name) {
+    game.setVar('human_talking', name);
+    scope.display('${grey:' + tr('=== Incoming communication ===') + '}');
+  },
+
+  incomingEnd: function() {
+    game.delVar('human_talking');
+    term.echo(format('${f_grey,italic:' + tr('=== Communication\'s end ===') + '}'));
+    server.state('communication-opened', false);
+    go();
+  },
+
+  download: function(ip, file) {
+    // Dependency !!! Try to remove it !
+    servers['127.32.47.53'].writeFile('/webroot/______', servers[ip].readFile(file));
+    exec('icefox ______ -d ______', function() {
+      display('\nFichier : ${f_cyan,italic:' + file.split('/')[file.split('/').length - 1] + '}\n\n=================================\n${italic:' + /*fescape(*/server.readFile('______')/*)*/.split('\n').join('}\n${italic:') + '}\n=================================\n');
+      servers['127.32.47.53'].removeFile('/webroot/______');
+      server.removeFile('______');
+      go();
+    });
+  },
+
+  taken: function(name, time) {
+    display('${italic,f_grey:' + name + ' est occupé}');
+
+    if(time)
+      scope.sleep(time);
+    else
+      go();
+  },
+
+  exec: function(cmd) {
+    exec(cmd);
   }
 };

@@ -4,7 +4,7 @@ var names = Object.keys(servers), search, apps, _server, j;
 
 for(var i = 0; i < names.length; i++) {
   _server = servers[names[i]];
-  search  = _server.glob('apps/*');
+  search  = _server.glob('apps/*', ['only_files']);
 
   for(j = 0; j < search.length; j++) {
     if(!servers.__store.dirExists('webroot/' + search[j].vars[0]))

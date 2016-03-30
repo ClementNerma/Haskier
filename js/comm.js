@@ -9,6 +9,8 @@ function report_bug(error, vars) {
   // Display the variables as a beautiful JSON !
   vars = JSON.stringify(vars || {}, null, 4);
 
+  console.error(error); if(Object.keys(vars).length) console.error(vars);
+
   // Ask the user for reporting the bug
   if(_confirm(tr('A bug has been detected. Would you like to report it ?\n\nDetails :\n${err}\n\n${vars}', [error, vars])))
     // Send the request to the server
@@ -69,32 +71,39 @@ function fatal(message) {
   throw new Error(message);
 }
 
-/* Remove info() message */
+/* Removed info() message */
+
+/**
+  * Format variables calls in a string
+  * @param {string} str
+  * @return {string}
+  */
+function formatVars(text) {
+  return text.replace(/\${([a-zA-Z0-9_\.]+)}/g, function(match, val) {
+    val = val.split('.');
+
+    if(val.length === 1)
+      return vars.hasOwnProperty(val[0]) ? vars[val[0]] : match;
+
+    var d = vars;
+
+    for(var i = 0; i < val.length - 1; i++) {
+      if(typeof d[val[i]] !== 'object' || !d[val[i]])
+        return match;
+
+      d = d[val[i]];
+    }
+
+    return typeof d[val[i]] !== 'undefined' ? d[val[i]] : match;
+  });
+}
 
 /**
   * Format a text to display it into the terminal
   * @param {string} text
   */
 function format(text) {
-  return text
-    // Format all variable names 'My text ${var}'
-    .replace(/\${([a-zA-Z0-9_\.]+)}/g, function(match, val) {
-      val = val.split('.');
-
-      if(val.length === 1)
-        return vars.hasOwnProperty(val[0]) ? vars[val[0]] : match;
-
-      var d = vars;
-
-      for(var i = 0; i < val.length - 1; i++) {
-        if(typeof d[val[i]] !== 'object' || !d[val[i]])
-          return match;
-
-        d = d[val[i]];
-      }
-
-      return typeof d[val[i]] !== 'undefined' ? d[val[i]] : match;
-    })
+  return formatVars(text)
     // Format all colors call 'My text ${red:My second text}'
     .replace(/\${([a-zA-Z0-9#_, ]+?):(.*?)}/g, function(match, style, content) {
       var guib = '', foreground = '', background = '', guibList = ['underline', 'strike', 'overline', 'italic', 'bold', 'glow'];
@@ -158,6 +167,7 @@ function formatDate(ms) {
 
 var displaying      = false; // Is displaying a message ?
 var displayingQueue = [];    // Messages queue
+var displayingFinal;
 var displayCallback;         // Displaying callback
 var displayingIndex;         // Displaying char index
 
@@ -228,9 +238,10 @@ function treatDisplayQueue() {
     return ;
   }
 
-  displaying      = msg;      // Message function is displaying
-  displayCallback = callback; // Callback (now we know there is a callback)
-  displayingIndex = 0;        // The character's position in the string (start at 0)
+  displaying      = rformat(msg); // Message function is displaying
+  displayingFinal = msg;          // Message with formatting
+  displayCallback = callback;     // Callback (now we know there is a callback)
+  displayingIndex = 0;            // The character's position in the string (start at 0)
 
   // We'll use the prompt to display the text, so we've to make it empty
   term.set_prompt('');
@@ -263,7 +274,7 @@ function treatDisplay() {
   // If we've displayed all the message
   if(displayingIndex === displaying.length) {
     // Display it as an entire string
-    echo(displaying);
+    echo(format(displayingFinal));
     // ... and make the prompt empty
     term.set_prompt('');
     // We're not displaying a message anymore
@@ -391,6 +402,15 @@ function fescape(str) {
   */
 function rescape(str) {
   return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
+}
+
+/**
+  * Remove all formatting
+  * @param {string} str
+  * @return {string}
+  */
+function rformat(str) {
+  return formatVars(str.replace(/\${(.*?):(.*?)}/g, '$2'));
 }
 
 /**
