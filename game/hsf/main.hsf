@@ -39,7 +39,7 @@ incoming("???");
 "Bonsoir ${name} !"
 "Vous voyez qui je suis, n'est-ce pas ?"
 "C'est le chef qui m'envoie"
-"Vous avez réussi à hacker nos serveurs et moi votre ordinateur"
+"Vous avez réussi à hacker nos serveurs et me voilà donc"
 "J'ai trouvé le fichier que vous aviez laissé sur notre serveur principal"
 download('86.32.54.28', 'documents/hack.txt');
 sleep(5000)

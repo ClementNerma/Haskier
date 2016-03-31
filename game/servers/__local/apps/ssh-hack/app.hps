@@ -38,8 +38,8 @@ register('ssh-hack', {
           display('Utilisateur  : guest');
           display('Mot de passe : ' + sys.users.guest.password);
           resolve('======= Fin =======');
-        }, 3000);
-      }, 4000);
-    }, 1000);
+        }, 3000 * (!fastdev));
+      }, 4000 * (!fastdev));
+    }, 1000 * (!fastdev));
   }
 });

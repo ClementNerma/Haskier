@@ -214,7 +214,66 @@ var _commands = {
         return ;
 
       if(!server.writeFile(file, content))
-        display_error('Failed to write file');
+        display_error(tr('Failed to write file'));
+    }
+  },
+
+  edit: {
+    legend   : tr('Edit a file'),
+    async    : true,
+    arguments: [
+      {
+        _       : 'action',
+        legend  : tr('What you want to do'),
+        required: true,
+        regex   : "insert|update"
+      },
+      {
+        _       : 'file',
+        legend  : tr('Filename'),
+        required: true
+      },
+      {
+        short   : 'l',
+        long    : 'line',
+        legend  : tr('Line to write'),
+        regex   : RegexCollection.Integer
+      },
+      {
+        short   : 'n',
+        long    : 'length',
+        legend  : tr('Number of lines to write'),
+        regex   : RegexCollection.PositiveInteger
+      }
+    ],
+    callback : function(act, file, line, length, resolve) {
+      if(!needsWrite(file, TOKEN))
+        return ;
+
+      ignoreKeys = false;
+
+      var i = -1, content = (server.fileExists(file) ? server.readFile(file).split('\n') : []);
+      line = line || 0; length = length || 1;
+
+      function ask() {
+        i += 1;
+
+        if(i === length) {
+          if(!server.writeFile(file, content.join('\n')))
+            resolve('${red:' + tr('Failed to write file') + '}');
+          else
+            resolve();
+
+          return ;
+        }
+
+        question((line + i) + ':', function(ans) {
+          content.splice(line + i, (act === 'update' ? 1 : 0), ans);
+          ask();
+        })
+      }
+
+      ask();
     }
   },
 
@@ -568,24 +627,28 @@ var _commands = {
     arguments: [
       {
         _       : 'action',
-        legend  : 'install remove update restart',
+        legend  : 'install list remove update restart',
         required: true
-        //regex   : /^install$/ // Causing a fatal error
       },
       {
         _       : 'name',
-        legend  : tr('Application\'s name'),
-        required: true
+        legend  : tr('Application\'s name')
       }
     ],
     async   : true,
     callback: function(action, name, resolve) {
       ignoreKeys = false;
 
-      if(!action.match(/^install|remove|update|restart$/))
+      // Check if action name is valid
+      if(!action.match(/^install|list|remove|update|restart$/))
         return resolve('${red:' + tr('Bad action specified') + '}');
 
-      if(!name.match(/^[a-zA-Z0-9_\-]+$/))
+      // List all existing applications
+      // NOTE : No permission is needed to list installed applications
+      if(action === 'list')
+        return resolve(server.glob('/apps/*', ['only_folders', 'names_list', 'relative_path']).sort().join('\n'));
+
+      if(!name || !name.match(/^[a-zA-Z0-9_\-]+$/))
         return resolve('${red:' + tr('Bad application\'s name specified') +'}');
 
       /*if(!needsRead('/apps/' + name))
@@ -625,10 +688,14 @@ var _commands = {
           if(!needsWrite('/apps/' + name))
             return resolve();
 
+          /*if(!tokenWrite('/users/' + userName + '/.tmp/cpm.dwp')) // DWP = Downloading app
+            return resolve('${red:' + tr('You are not allowed to wwrite temporary folder but CPM requires an access to store temporary download') + '}');*/
+
           var content = '', eq, barSize = 50;
           term.set_prompt('[' + ' '.repeat(barSize) + '] 0%');
 
           ignoreKeys = true;
+
           server.download({
             url     : 'app.xms',
             data    : {name: name},
@@ -642,7 +709,7 @@ var _commands = {
               if(pkt && pkt.headers.code === 404)
                 resolve('${red:' + tr('Application "${name}" was not found on the store', [name]) + '}');
               else
-                resolve('${red:' + tr('Failed to download "${name}"', [name]) + '}')
+                resolve('${red:' + tr('Failed to download "${name}" : Server error', [name]) + '}')
             },
             success: function(ct) {
               term.set_prompt('');
@@ -754,6 +821,58 @@ var _commands = {
       serverLogged = [];
       updateServer('__local', 'Shaun');
       display(tr('Welcome back to home, ${name} !'));
+    }
+  },
+
+  /* TODO: Make 'cp' and 'mv' commands + 'rename' alias */
+
+  cp: {
+    legend   : tr('Copy a file'),
+    arguments: [
+      {
+        _       : 'src',
+        legend  : tr('Source file'),
+        required: true
+      },
+      {
+        _       : 'dest',
+        legend  : tr('Destination file'),
+        required: true
+      }
+    ],
+    callback : function(src, dest) {
+      if(!needsRead(src) || !needsWrite(dest))
+        return ;
+
+        var ret = server.copyFile(src, dest);
+
+        if(ret)
+          display_error(tr('Copy has failed : ${msg}', [tr(ret)]));
+    }
+  },
+
+  mv: {
+    legend   : tr('Move a file'),
+    arguments: [
+      {
+        _       : 'src',
+        legend  : tr('Source file'),
+        required: true
+      },
+      {
+        _       : 'dest',
+        legend  : tr('New filename'),
+        required: true
+      }
+    ],
+    callback : function(src, dest) {
+      if(!needsRead(src) || !needsRead(src) || !needsWrite(dest))
+        return ;
+
+      var ret = server.moveFile(src, dest);
+
+      if(ret)
+        display_error(tr('Move has failed : ${msg}', [tr(ret)]));
     }
   },
 

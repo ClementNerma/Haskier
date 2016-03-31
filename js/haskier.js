@@ -10,13 +10,18 @@ var hidden = $('#terminal, #clock').hide(),
  * exec  Run a shell command when scope.todo() is called
  * reset Reset the game's save
  */
-if(fastdev && query.reset)
+if(query.reset)
   localStorage.removeItem('haskier');
 
 /*const*/
-var   readingLineDuration = 50;
-var   humanSpeed          = 80;
+var   readingLineDuration = 35;
+var   humanSpeed          = 70;
 const backup_prefix       = 'hsk_arch_';
+
+/* Global constants */
+const DONT_PREVENT_KEYDOWN     = 101;
+const RESTORE_KEYDOWN_CALLBACK = 102;
+const RESTORE_COMMAND_CALLBACK = 103;
 
 var clone = (new Server('@model')).clone;
 delete servers['@model'];
@@ -112,12 +117,15 @@ function ready() {
 
       // Make users directories
       users = Object.keys(sys.users);
-      server.mkdir('/users');
+
+      server.mkdir('/users'); // Folder's existence is checked by Server class
 
       for(j = 0; j < users.length; j++) {
         server.mkdir('/users/' + users[j]);
         server.mkdir('/users/' + users[j] + '/documents');
         server.mkdir('/users/' + users[j] + '/downloads');
+        server.mkdir('/users/' + users[j] + '/.tmp');
+        server.mkdir('/users/' + users[j] + '/.appdata');
         sys.users[users[j]].home = sys.users[users[j]].home || '/users/' + users[j];
       }
 
@@ -125,12 +133,10 @@ function ready() {
       server.hide('/.sys');
 
       // Make default folders
-      if(!server.dirExists('/apps'))
-        server.mkdir('/apps');
+      server.mkdir('/apps');
       server.hide('/apps');
 
-      if(!server.dirExists('/env'))
-        server.mkdir('/env');
+      server.mkdir('/env');
 
       // This is a micro-script to test if the user can access to environment scripts
       server.writeFile('/env/is-env.hss', 'echo Environment scripts are supported.');
@@ -227,7 +233,7 @@ function startApp(app, serverName, returnError) {
   var _server = serverName ? servers[serverName] : server;
 
   try {
-    (new Function(['server', 'register', 'load_translation', '$TOKEN'], _server.readFile('/apps/' + app + '/app.hps'))).apply(window, [_server, function(name, command) {
+    (new Function(['server', 'register', 'load_translation', 'exec', 'getcmd', '$TOKEN'], _server.readFile('/apps/' + app + '/app.hps'))).apply(window, [_server, function(name, command) {
       if(typeof command.legend !== 'string' || !Array.isArray(command.arguments) || typeof command.callback !== 'function')
         fatal('Can\'t register invalid command "' + name + '"');
 
@@ -248,6 +254,11 @@ function startApp(app, serverName, returnError) {
         tr_pkg[keys[i]] = tr_file[keys[i]];
 
       return true;
+    }, function(cmd, applyArgs) {
+      // Important : Only synchronous operations are supported !
+      return serversCommands[serverName || window.serverName][cmd].apply(serversCommands[serverName || window.serverName], applyArgs);
+    }, function(name) {
+      return serversCommands[serverName || window.serverName].hasOwnProperty(name) ? serversCommands[serverName || window.serverName][name] : false;
     }, clone(TOKEN || TOKENS.system /* fix a bug. Is that causing an issue ? */)]);
 
     return true;
@@ -1054,7 +1065,7 @@ var term = $('#terminal').terminal(function(cmd, term) {
       //if(ret === true)
         dontRecoverPrompt = false;
 
-      if(!catchCommand && ret === true)
+      if(!catchCommand && ret === RESTORE_COMMAND_CALLBACK)
         // We recover the catcher
         catchCommand = callback;
     }
@@ -1078,13 +1089,15 @@ var term = $('#terminal').terminal(function(cmd, term) {
       var callback = keydownCallback, ret;
       // To delete it in the variable (this permit to remove some bugs)
       keydownCallback = null;
-      // If the callback does returns 'true'
-      if(callback(e) === true)
+      // Run the callback
+      var ret = callback(e);
+
+      if(ret === RESTORE_KEYDOWN_CALLBACK)
         // Restore the callback
         keydownCallback = callback;
 
       // Prevent the key event
-      return false;
+      return (ret !== DONT_PREVENT_KEYDOWN ? false : e);
     }
 
     // Exception for '&' which is deleted by jQuery.terminal for an unknown reason
@@ -1233,9 +1246,6 @@ if(!is_save) {
   // Import view...
   //term.import_view(save.view);
 }
-
-// Update interface
-// updateUI();
 
 vars.scope  = scope;
 

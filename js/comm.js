@@ -35,6 +35,23 @@ function report_bug(error, vars) {
 var outputFilter;
 
 /**
+  * Check if a char code is printable
+  * @param {number} charCode
+  * @param {boolean} [preventNewLine] If true, will not accept char code 13 (new line). Default: false
+  * @return {boolean}
+  */
+function is_printable(charCode, preventNewLine) {
+  return ((
+    (charCode > 47  && charCode <  58 ) || // number keys
+    charCode == 32  || charCode == 13   || // spacebar & return key(s) (if you want to allow carriage returns)
+    (charCode > 64  && charCode <  91 ) || // letter keys
+    (charCode > 95  && charCode <  112) || // numpad keys
+    (charCode > 185 && charCode <  193) || // ;=,-./` (in order)
+    (charCode > 218 && charCode <  224)    // [\]' (in order)
+  ) && (preventNewLine ? charCode !== 13 : true));
+}
+
+/**
   * Display a text, considering filters
   * @param {*} text
   */
@@ -343,12 +360,12 @@ function choice(args, callback) {
   catchCommand = function(ans) {
     if(Number.isNaN(ans = parseInt(ans))) {
       display_error(tr('Answer must be a number'));
-      return true;
+      return RESTORE_COMMAND_CALLBACK;
     }
 
     if(ans < 1 || Math.floor(ans) !== ans || ans > args.length) {
       display_error(tr('Bad answer'));
-      return true;
+      return RESTORE_COMMAND_CALLBACK;
     }
 
     callback(ans, args[ans - 1]);
@@ -372,7 +389,7 @@ function confirm(message, callback) {
 
     if(ans !== yes_key && ans !== no_key) {
       display_error(tr('Please type `${yes_key}` or `${no_key}`', [yes_key, no_key]));
-      return true;
+      return RESTORE_COMMAND_CALLBACK;
     }
 
     callback(ans === yes_key);
@@ -421,3 +438,52 @@ function rformat(str) {
 function escapeHtml(str) {
   return $(document.createElement('span')).text(str).html();
 }
+
+/**
+  * Characters table
+  * @type {Object}
+  */
+var chars = {
+  3:   'cancel',
+  8:   'backspace',
+  9:   'tab',
+  12:  'clear',
+  13:  'enter',
+  16:  'shift',
+  17:  'ctrl',
+  18:  'alt',
+  19:  'pause',
+  20:  'capslock',
+  27:  'esc',
+  32:  'space',
+  33:  'pageup',
+  34:  'pagedown',
+  35:  'end',
+  36:  'home',
+  37:  'left',
+  38:  'up',
+  39:  'right',
+  40:  'down',
+  41:  'select',
+  42:  'printscreen',
+  43:  'execute',
+  44:  'snapshot',
+  45:  'insert',
+  46:  'delete',
+  47:  'help',
+  145: 'scroll',
+
+  // function keys
+  112: 'f1',
+  113: 'f2',
+  114: 'f3',
+  115: 'f4',
+  116: 'f5',
+  117: 'f6',
+  118: 'f7',
+  119: 'f8',
+  120: 'f9',
+  121: 'f10',
+  122: 'f11',
+  123: 'f12'
+};

@@ -313,6 +313,62 @@ Object.defineProperty(window, 'Server', {
   };
 
   /**
+    * Copy a file
+    * @param {string} src
+    * @param {string} dest
+    * @return {void|string}
+    */
+  this.copyFile = function(src, dest) {
+    if(this.dirExists(src))
+      return "Source is a directory";
+
+    if(!this.fileExists(src))
+      return "Source file not found";
+
+    if(this.exists(dest))
+      return "Destination already exist";
+
+    var r = this.readFile(src);
+
+    if(!r)
+      return "Failed during source opening";
+
+    if(!this.writeFile(dest, r))
+      return "Failed during destination writing";
+  };
+
+  /**
+    * Move a file
+    * @param {string} src
+    * @param {string} dest
+    * @return {void|string}
+    */
+  this.moveFile = function(src, dest) {
+    // We put here a modified version of copyFile() which will remove source BEFORE writing destination
+    // This permit to don't have two versions of the file at the same time
+
+    if(this.dirExists(src))
+      return "Source is a directory";
+
+    if(!this.fileExists(src))
+      return "Source file not found";
+
+    if(this.exists(dest))
+      return "Destination already exist";
+
+    var r = this.readFile(src);
+
+    if(!r)
+      return "Failed during source opening";
+
+    if(!this.removeFile(src))
+      return "Failed to remove source";
+
+    if(!this.writeFile(dest, r))
+      return "Failed during destination writing";
+  };
+
+  /**
     * Remove a file
     * @param {string} file
     * @return {boolean}
@@ -350,6 +406,9 @@ Object.defineProperty(window, 'Server', {
 
     for(var i = 0; i < d.length; i++) {
       if(!_table[(dir ? dir + '/' : '') + d[i]] || !_table[(dir ? dir + '/' : '') + d[i]].hidden || (_table[(dir ? dir + '/' : '') + d[i]].hidden && showHidden)) {
+        if(d[i].substr(0, 1) === '.' && !showHidden)
+          continue ;
+
         if(d[i].substr(0, 3) === '___' && typeof ({})[d[i].substr(3)] !== 'undefined')
           d[i] = d[i].substr(3);
 
@@ -399,7 +458,7 @@ Object.defineProperty(window, 'Server', {
     * @return {boolean|string}
     */
   this.removeTree = function(dir) {
-    if(!this.dirExists(dir = normalize(dir)))
+    if(!this.dirExists(dir = normalize(dir, true)))
       return "Directory not found";
 
     var ret = _fs(dir, 'object', false);
@@ -556,7 +615,7 @@ Object.defineProperty(window, 'Server', {
        return false;
 
     folder   = clone(folder);
-    var path = normalize(path || folder.path);
+    var path = normalize(path || '/' + folder.path, true);
 
     if(this.dirExists(path))
       this.removeTree(path);
@@ -577,7 +636,7 @@ Object.defineProperty(window, 'Server', {
     * @return {boolean|object}
     */
   this.exportFolder = function(path) {
-    var folder = _fs(path = normalize(path), 'object');
+    var folder = _fs(path = normalize(path, true), 'object');
 
     if(!folder)
       return false;

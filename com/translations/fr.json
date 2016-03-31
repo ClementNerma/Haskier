@@ -24,6 +24,7 @@
   "Run a script or a command": "Exécuter un script ou une commande",
   "Sleep the script during a while": "Mettre le script en pause",
   "Display only lines wich contains a text": "Afficher uniquement les lignes contenant un texte donné",
+  "Edit a file": "Modifier un fichier",
 
   "New name": "Nouveau nom",
   "Variable's name": "Nom de la variable",
@@ -52,6 +53,10 @@
   "Text to search": "Texte à rechercher",
   "Consider text as a regex": "Parser le texte comme une regex",
   "Display details for each file and folder": "Afficher les détails pour chaque fichier et dossier",
+  "What you want to do": "Ce que vous voulez faire",
+  "Filename": "Nom du fichier",
+  "Line to write": "Ligne à écrire",
+  "Number of lines to write": "Nombre de lignes à écrire",
 
   "command not found : ${cmd}": "commande non trouvée : ${cmd}",
   "A bug has been detected. Would you like to report it ?\n\nDetails :\n${err}\n\n${vars}": "Un bug a été détecté. Voulez-vous le reporter ?\n\nDétails :\n${err}\n\n${vars}",
@@ -84,7 +89,7 @@
   "You are not allowed to access event \"${event}\"": "Vous n'êtes pas autorisé à accéder à l'événement \"${event}\"",
   "You are not allowed to write \"${path}\"": "Vous n'êtes pas autorisé à écrire \"${path}\"",
   "You are not allowed to read \"${path}\"": "Vous n'êtes pas autorisé à lire \"${path}\"",
-
+  
   "Directory not found": "Le dossier n'existe pas",
   "Directory is not empty": "Le dossier n'est pas vide",
   "File or folder not found": "Le fichier ou dossier n'existe pas",
@@ -92,6 +97,16 @@
   "Failed to read file": "Impossible de lire le fichier",
   "Failed to read file as JSON": "Impossible de lire le fichier comme objet JSON",
   "Failed to make folder": "Impossible de créer le dossier",
+  "Failed to write file": "Impossible d'écrire dans le fichier",
+
+  "Source is a directory": "La source est un dossier",
+  "Source file not found": "Le fichier source n'a pas été trouvée",
+  "Destination already exist": "La destination existe déjà",
+  "Failed during source opening": "Échec durant la lecture du fichier source",
+  "Failed during destination writing": "Échec durant l'écriture du fichier de destination",
+  "Failed to remove source": "Impossible de supprimer le fichier source",
+  "Copy has failed : ${msg}": "La copie a échouée : ${msg}",
+  "Move has failed : ${msg}": "Le déplacement a échoué : ${msg}",
 
   "Font has been reset": "La police a été réinitialisée",
   "Font has been changed from \"${old}\" to \"${new}\"": "La police a été changée de \"${old}\" vers \"${new}\"",
@@ -129,7 +144,7 @@
   "Failed to remove \"${name}\". Please try again. Error : ${err}": "Impossible de supprimer \"${name}\". Veuillez réessayer. Erreur : ${err}",
   "\"${name}\" has been successfully removed. You must reboot your server to make changes takes effect. Reboot now ?": "\"${name}\" a été correctement désinstallé. Vous devez redémarrer votre serveur pour que les changements prennent effet. Redémarrer maintenant ?",
   "Application \"${name}\" was not found on the store": "L'application \"${name}\" n'a pas été trouvée dans le magasin d'applications",
-  "Failed to download \"${name}\"": "Le téléchargement de \"${name}\" a échoué",
+  "Failed to download \"${name}\" : Server error": "Le téléchargement de \"${name}\" a échoué : Erreur du serveur",
   "Connecting to server...": "Connection au serveur...",
   "Creating folder...": "Création du dossier...",
   "Extracting package...": "Extraction de l'application...",

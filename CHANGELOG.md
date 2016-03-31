@@ -1,3 +1,19 @@
+Th 31-03-2016
+Haskier b-0.3
+- Added `cp`, `mv` ; `edit` command for simple file editing
+- Added `pico` application : A simple text editor
+
+*** === Misc === ***
+- Increased messages speed
+- Added `exec` and `getcmd` arguments for applications' callback
+- Files and folders starting by '.' are now considered as hidden in Server.readDir()
+- Added Server.copyFile() and Server.moveFile() functions
+- Added action `list` in `cpm` which displays all installed applications
+
+*** === Bug fixes === ***
+- Fixed a bug with folders import and export : relative path was used instead of absolute path
+- Fixed a bug with Server.removeTree() : relative path was used instead of absolute path
+
 We 30-03-2016
 Haskier b-0.2
 - NEW : Mission 01

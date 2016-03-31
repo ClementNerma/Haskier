@@ -1,0 +1,8 @@
+{
+  "Text editor": "Éditeur de texte",
+  "Filename": "Nom du fichier",
+  "Exit": "Quitter",
+  "Please input the file path": "Veuillez saisir l'emplacement du fichier",
+  "Failed to write changes in a temporary file": "Impossible d'écrire les modifications dans un fichier temporaire",
+  "All changes were written in": "Toutes les modifications ont été écrits dans"
+}
