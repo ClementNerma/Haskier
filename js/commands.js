@@ -12,7 +12,9 @@ var RegexCollection = {
   AlphaNumeric_  : '[a-zA-Z0-9_]+',
   Integer        : '(\-|)([0-9]*)',
   PositiveInteger: '[1-9]([0-9]*)',
-  Number         : '([0-9\.]+)'
+  Number         : '([0-9\.]+)',
+  Email          : '(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))',
+  TimeName       : '(second|minute|hour|month)(s|)'
 };
 
 /**
@@ -517,9 +519,11 @@ var _commands = {
         tr('Restore a save backup'),
         tr('(!) Restart the game'),
         tr(save.data.noAutoBackup ? 'Enable' : 'Disable') + ' ' + tr('auto-save backup'),
+        tr('Export your backups'),
+        tr('Import your backups'),
         tr('${cyan:' + tr('Cancel') + '}')
       ], function(ans) {
-        if(ans === 5)
+        if(ans === 7)
           return resolve();
 
         display('');
@@ -527,6 +531,7 @@ var _commands = {
         switch(ans) {
           case 1:
             // Backup the current save
+
             question(tr('Choose the backup\'s name (letters, digits, ${green:_ -} allowed)'), function(name) {
               if(!name.match(/^[a-zA-Z0-9_\-]+$/))
                 resolve('${red:' + tr('Wrong backup\'s name') + '}');
@@ -543,6 +548,7 @@ var _commands = {
 
           case 2:
             // Restore a backup
+
             display(tr('Backups list') + ' :');
             var keys           = Object.keys(localStorage), sav, date, name, corrupted, size;
             var _sm_saves      = [];
@@ -550,7 +556,7 @@ var _commands = {
 
             for(var i = 0; i < keys.length; i += 1) {
               if(keys[i].substr(0, backup_prefix.length) === backup_prefix) {
-                try { sav  = JSON.parse(localStorage.getItem(keys[i])); corrupted = false; }
+                try { sav  = JSON.parse(LZString.decompressFromUTF16(localStorage.getItem(keys[i]))); corrupted = false; }
 
                 catch(e) {
                   _sm_saves.push('${red:????????? ' + keys[i].substr(backup_prefix.length) + ' &#91;' + tr('Corrupted') + '&#93;}');
@@ -568,6 +574,7 @@ var _commands = {
                     name = '${cyan:' + name + '}';
 
                   size = JSON.stringify(sav).length;
+                  sav.marker = sav.marker || '-';
                   _sm_saves.push('${green:' + fescape(date) + ' '.repeat(16 - date.length) + '} ' + fescape(sav.marker) + ' '.repeat(30 - sav.marker) + ' ${bold:' + size + '}' + ' '.repeat(7 - size.toString().length) + name);
                   _sm_saves_json.push(sav);
                 }
@@ -583,7 +590,7 @@ var _commands = {
               if(!save)
                 return resolve('${red:' + tr('Unable to restore a corrupted backup') + '}');
 
-              localStorage.setItem('haskier', JSON.stringify(save));
+              localStorage.setItem('haskier', LZString.compressToUTF16(JSON.stringify(save)));
 
               window.location.reload();
             });
@@ -591,6 +598,8 @@ var _commands = {
             break;
 
           case 3:
+            // Restart the game
+
             display(tr("Do you REALLY want to restart the game ? All progression will be lost !\n${bold:NOTE :} Your save's backups won't be lost and you'll be able to restore it at any moment\nType your player's name : ${bold:${name}} to restart the game"));
 
             question(null, function(name) {
@@ -604,9 +613,80 @@ var _commands = {
             break;
 
           case 4:
+            // Toggle auto save backup
             save.data.noAutoBackup = !save.data.noAutoBackup;
             display(tr('Done.'));
             resolve();
+            break;
+
+          case 5:
+            // Export all backups
+            var names = Object.keys(localStorage), exp = {};
+
+            for(var i = 0; i < names.length; i++) {
+              if(names[i].substr(0, backup_prefix.length) === backup_prefix || names[i] === 'haskier')
+                exp[names[i]] = LZString.decompressFromUTF16(localStorage.getItem(names[i]));
+            }
+
+            blob_dw(LZString.compressToUTF16(JSON.stringify(exp)), 'haskier.bak');
+            resolve();
+            break;
+
+          case 6:
+            // Import all backups
+            ignoreKeys = true;
+
+            var callback = function() {
+              $('#smfileimport').click();
+              term.off('click', callback);
+            };
+
+            $('body').append($('<input type="file" id="smfileimport" />').hide().on('change', function(evt) {
+
+              //Retrieve the first (and only!) File from the FileList object
+
+              var f = evt.target.files[0];
+
+              if (f) {
+                var r = new FileReader();
+
+                r.onload = function(e) {
+          	      var contents = e.target.result;
+
+                  try      { contents = JSON.parse(LZString.decompressFromUTF16(contents)); }
+                  catch(e) { return resolve('${red:' + tr('Specified file is not a valid backup container') + '}'); }
+
+                  ignoreKeys = false;
+
+                  display(tr('Do you want to clear the current storage ? This will erase all of your backups. Choose this option if the previous import failed.')),
+                  question(tr('Clear storage ?'), function(erase) {
+                    if(erase) {
+                      localStorage.clear();
+                      display(tr('Storage has been cleared.'));
+                    }
+
+                    var names = Object.keys(contents);
+
+                    for(var i = 0; i < names.length; i++) {
+                      try      { localStorage.setItem(names[i], LZString.compressToUTF16(contents[names[i]])); }
+                      catch(e) { return display(tr('${red:' + tr('Some backups have been restored, but importation n°${num} has failed.', [i + 1]) + ' (' + names[i] + ')}')); }
+                    }
+
+                    display(tr('${num} backups have been imported successfully.', [names.length]));
+                    resolve();
+                  })
+                };
+
+                r.readAsText(f);
+              } else {
+                resolve('${red:' + tr('Failed to read file') + '}');
+              }
+
+            }));
+
+            display(tr('Click into the window to select a file to import'));
+            term.set_prompt(tr('Waiting for import...'));
+            term.on('click', callback);
             break;
         }
       });
@@ -714,7 +794,7 @@ var _commands = {
             success: function(ct) {
               term.set_prompt('');
 
-              display(tr('Creating folder...'));
+              /*display(tr('Creating folder...'));
               server.mkdir('/apps/' + name);
 
               display(tr('Extracting package...'));
@@ -725,7 +805,7 @@ var _commands = {
               for(var i = 0; i < files.length; i++) {
                 display(tr('Extracting file ${i} of ${num}', [i + 1, files.length]));
                 server.writeFile('/apps/' + name + '/' + files[i], app[files[i]]);
-              }
+              }*/
 
               display(tr('Starting application...'));
 
@@ -873,6 +953,32 @@ var _commands = {
 
       if(ret)
         display_error(tr('Move has failed : ${msg}', [tr(ret)]));
+    }
+  },
+
+  every: {
+    legend   : tr('Schedule script\'s execution'),
+    arguments: [
+      {
+        _       : 'unit',
+        legend  : tr('Time unit') + ' (day, minute, hour...)',
+        required: true,
+        regex   : RegexCollection.TimePart
+      },
+      {
+        _       : 'path',
+        legend  : tr('File path'),
+        required: true
+      }
+    ],
+    callback : function(unit, path) {
+      // Here the path is normalized to make the scheduler work even though the current
+      // Working directory changes
+      path = server.normalize(path, true);
+
+      every(unit, function() {
+        command(server.readFile(path));
+      });
     }
   },
 

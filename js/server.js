@@ -931,6 +931,9 @@ Object.defineProperty(window, 'Server', {
     if(typeof callback !== 'function')
       return 'Bad callback';
 
+    if(typeof request.network !== 'string')
+      return 'Bad request, network is not valid';
+
     if(typeof request.url !== 'string')
       return 'Bad request, url is not valid';
 
@@ -939,9 +942,6 @@ Object.defineProperty(window, 'Server', {
 
     if(typeof request.port !== 'number' || Number.isNaN(request.port))
       return 'Bad request, port is not valid';
-
-    if(typeof request.network !== 'string')
-      return 'Bad request, network is not valid';
 
     if(typeof request.client !== 'string')
       return 'Bad request, client is not valid';
@@ -973,8 +973,8 @@ Object.defineProperty(window, 'Server', {
       request.url = request.url.substr(0, index);
     }
 
+    // Display all requests on developper's console
     console.log(request);
-
     _events['incoming:' + request.port][names[0]](request, response);
 
     return ;
@@ -988,6 +988,19 @@ Object.defineProperty(window, 'Server', {
     if(!_netwk.hasOwnProperty(params.network || 'hypernet'))
       return params.error("Server is not connected to this network");
 
+    if(params.dnsUrl) {
+      var parsed = parseUrl(params.dnsUrl, params.network);
+
+      if(!parsed)
+        return 'Bad request, URL is not registered in DNS';
+
+      params.url = parsed.url;
+      params.IP  = parsed.IP ;
+
+      // Server don't have to know that the request has been parsed by DNS
+      delete params.dnsUrl   ;
+    }
+
     if(!servers.hasOwnProperty(params.IP))
       return params.error("Failed to connect to server : IP not found");
 
@@ -997,7 +1010,7 @@ Object.defineProperty(window, 'Server', {
       keys = Object.keys(params.data);
       for(i = 0; i < keys.length; i++)
         query += '&' + keys[i] + '=' + encodeURIComponent(params.data[keys[i]]);
-      params.url += '?' + query.substr(1);
+      params.url += (params.url.indexOf('?') === -1 ? '?' : '&') + query.substr(1);
     }
 
     var d = Date.now(), c = 0, speed, r, received = 0;
@@ -1027,7 +1040,7 @@ Object.defineProperty(window, 'Server', {
             speed: speed,
             time : Date.now() - d,
             size : c/*(packet.total - 1) * packet.size + packet.content.length*/
-          });
+          }, packet);
         else {
           packet.received = content;
           params.error(tr('Error: Server returned status ${status}', [packet.headers.code]) + '\n' + content, packet);
@@ -1089,7 +1102,7 @@ Object.defineProperty(window, 'Server', {
   /* Classes */
 
   this.response  = function(request, onEnd) {
-    var sending, content, packets, sendI, bandwidth = fastdev ? 16384 : Math.min(_netwk[request.network].speed, request.bandwidth);
+    var sending, content, packets, sendI, bandwidth = (fastdev && query['fast-network']) ? parseInt(query['fast-network']) || 16384 : Math.min(_netwk[request.network].speed, request.bandwidth);
 
     this.end     = function() {
       sending = -1;

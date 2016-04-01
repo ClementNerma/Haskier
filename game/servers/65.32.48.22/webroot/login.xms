@@ -1,0 +1,41 @@
+<%
+  var name = request.data.adress;
+
+  if(!request.data.hasOwnProperty('adress') || !request.data.hasOwnProperty('password'))
+    response.headers.code = 400;
+  else {
+    if(name.indexOf('@') !== -1) {
+      if(name.substr(name.indexOf('@') + 1) === 'mailbox.net')
+        name = name.substr(0, name.indexOf('@'));
+      else {
+        response.content = 'false';
+        return ;
+      }
+    }
+
+    if(!name.match(/^([a-zA-Z0-9_\-\.]+)$/))
+      response.headers.code = 400;
+    else if(!server.fileExists('/webroot/accounts/' + name + '.account'))
+      response.content = tr('Specified adress was not found');
+    else {
+      // Do stuff here
+      // We have to check user credentials
+
+      var account = server.readJSON('/webroot/accounts/' + name + '.account');
+
+      // If account reading has failed
+      if(!account) {
+        response.headers.code = 500;
+        response.content      = tr('Internal server error');
+        return ;
+      }
+
+      if(account.account.password === request.data.password) {
+        delete account.password;
+        echo(JSON.stringify(account.account));
+      } else
+        echo('failed');
+    }
+  }
+
+%>

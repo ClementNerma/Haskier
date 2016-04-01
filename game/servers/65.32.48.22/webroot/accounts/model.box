@@ -1,0 +1,19 @@
+{
+  "boxes": {
+    "inbox"   : "Inbox",
+    "sent"    : "Sent",
+    "trash"   : "Trash",
+    "archives": "Archives"
+  },
+
+  "messages": [
+    {
+      "id"     : "9aca755d926e044080f35d92fdc20cf1",
+      "sender" : "ro.ger@mailbox.net",
+      "box"    : "inbox",
+      "subject": "Bienvenue",
+      "time"   : 946681200000,
+      "content": "Nous vous souhaitons la bienvenue sur notre service Mailbox.\nVous pouvez dès à présent vous connecter avec votre adresse ${italic:${mailbox.adress}}.\nNous vous remercions de votre confiance et vous souhaitons une agréable journée.\n\nCordialement,\nRo Ger."
+    }
+  ]
+}

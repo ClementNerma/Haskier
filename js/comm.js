@@ -187,6 +187,7 @@ var displayingQueue = [];    // Messages queue
 var displayingFinal;
 var displayCallback;         // Displaying callback
 var displayingIndex;         // Displaying char index
+var forceDisplay   = false;  // Display the current line in one time
 
 /**
   * Display a message into the terminal
@@ -263,7 +264,13 @@ function treatDisplayQueue() {
   // We'll use the prompt to display the text, so we've to make it empty
   term.set_prompt('');
   // Show the cover to make user unable to type some text in the terminal during the display
-  ignoreKeys = true;
+  //ignoreKeys = true;
+  keydownCallback = function(e) {
+    if(e.keyCode === 40)
+      forceDisplay = true;
+
+    return RESTORE_KEYDOWN_CALLBACK;
+  };
 
   // Treat the string's display
   //setTimeout(treatDisplay, (game.getVar('humanSpeed') || humanSpeed) * 6);
@@ -283,6 +290,12 @@ function treatDisplay() {
   // ... So that permit to remove some bug
   if(displaying.length)
     displayingIndex++;
+
+  // Check `forceDisplay` request from keydown callback
+  if(forceDisplay) {
+    forceDisplay = false;
+    displayingIndex = displaying.length;
+  }
 
   // If the displaying index is not valid -> report a bug
   if(displayingIndex > displaying.length)
@@ -308,13 +321,19 @@ function treatDisplay() {
     // Make user able to type some commands in the terminal
     ignoreKeys = false;
 
+    // Remove the keydown callback
+    keydownCallback = null;
+    // If the display pass key was pressed after the 'forceDisplay' checking
+    forceDisplay = false;
+
     // Call the display callback (because there is one)
     displayCallback();
 
     // If there is another message to display
-    if(displayingQueue.length)
+    if(displayingQueue.length) {
       // Treat the displaying queue
       treatDisplayQueue();
+    }
 
     // Stop the function
     return ;
@@ -437,6 +456,36 @@ function rformat(str) {
   */
 function escapeHtml(str) {
   return $(document.createElement('span')).text(str).html();
+}
+
+/**
+  * Reverse a string
+  * @param {string} input
+  * @return {string}
+  */
+function reverse(input) {
+  for(var output = [], i = 0; i < input.length; i++)
+      output.push(input[i]);
+
+  return output.reverse().join('');
+}
+
+/**
+  * Uppercase the first char of a string
+  * @param {string} str
+  * @return {string}
+  */
+function ucfirst(str) {
+  return str.substr(0, 1).toLocaleUpperCase() + str.substr(1);
+}
+
+/**
+  * Lowercase the first char of a string
+  * @param {string} str
+  * @return {string}
+  */
+function lcfirst(str) {
+  return str.substr(0, 1).toLocaleLowerCase() + str.substr(1);
 }
 
 /**

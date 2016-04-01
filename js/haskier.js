@@ -2,14 +2,19 @@
 
 var hidden = $('#terminal, #clock').hide(),
   dontRecoverPrompt = false, hsf_conds = [], todo = [], justRestored = false, justRestoredLabel = false,
-  ignoreKeys = false, gameStarted = false, clock, clockInterval, clockRefresh, cmd_out = [], buff_out = [],
+  ignoreKeys = false, gameStarted = false, clock, clockInterval, clockMove, cmd_out = [], buff_out = [],
   redirection = false, query = (function(query) {var result = {};query.split('&').forEach(function(part) {var item = part.split("=");result[item[0]] = decodeURIComponent(item[1]);});return result;})(location.search.substr(1)),
-  fastMode = !!query.fastmode, fastdev = (query.fastmode === atob('ZGV2ZWxvcHBlci1oYXg=')), CompiledRegExp = {};
+  fastMode = !!query.fastmode, fastdev = (query.fastmode === atob('ZGV2ZWxvcHBlci1oYXg=')), CompiledRegExp = {}, whenLogged = []
 /* FastDev query parameters :
- * label Go to a HSF label when scope.restore() is called
- * exec  Run a shell command when scope.todo() is called
- * reset Reset the game's save
+ * label         Go to a HSF label when scope.restore() is called
+ * exec          Run a shell command when scope.todo() is called
+ * reset         Reset the game's save
+ * fast-human    Hyper-fast human dialogs
+ * fast-clock    No waiting for wait_at HSF event
+ * fast-network  Set Hypernet connection speed. (fast-network=...) Set to 16384 b/s if no value is specified (= 16 kb/s)
+ * clear-console Clear the developper's console when the game has been entirely loaded
  */
+
 if(query.reset)
   localStorage.removeItem('haskier');
 
@@ -33,8 +38,6 @@ function ready() {
   var started = Date.now();
 
   hidden.show();
-
-  clock = save.clock ? new Date(save.clock) : Date.parse('03/07/2016 19:10:00');
 
   game.event('label', function(name, marker, step) {
     if(game.getVar('FREEZE_UNTIL_TODO'))
@@ -67,17 +70,10 @@ function ready() {
     }
   });
 
-  game.event('include', function(filename) {
-    if(!HSF_files[filename])
-      console.error('Scenaristic file /hsf/' + filename + ' was not found');
-
-    return HSF_files[filename];
-  });
-
   if(save.logged)
     serverLogged = save.logged;
 
-  var names = Object.keys(haskier.servers), name, apps, j, d, commands, l;
+  var names = Object.keys(haskier.servers), name, apps, j, d, l;
 
   for(var i = 0; i < names.length; i++) {
     name = names[i];
@@ -152,23 +148,20 @@ function ready() {
     display(tr('Starting up server ${num} of ${total}...', [i + 1, names.length]))
 
     d = Date.now();
-    apps = servers[names[i]].glob('/apps/*/app.hps');
     serversCommands[names[i]] = clone(_commands);
+
+    updateServer(names[i], 'system');
+    apps = server.ls('/apps');
 
     //startApp(apps[j].vars[0], names[i]);
     TOKEN = clone(TOKENS.system);
 
     for(j = 0; j < apps.length; j++)
-      if(!startApp(apps[j].vars[0], names[i]))
-        console.error('Failed to start application ' + apps[j].vars[0] + ' from server ' + names[i]);
+      if(!startApp(apps[j], names[i]))
+        console.error('Failed to start application ' + apps[j] + ' from server ' + names[i]);
 
-    if(servers[names[i]].fileExists('/user/init.hss')) {
-      updateServer(names[i], 'system');
-      commands = server.readFile('/user/init.hss').split('\n');
-
-      for(l = 0; l < commands.length; l++)
-        command(commands[l]);
-    }
+    if(server.fileExists('/user/init.hss'))
+      command(server.readFile('/user/init.hss'));
 
     console.log('Starting up server ' + (i + 1) + '/' + names.length + ' (' + (Date.now() - d) + ' ms)');
   }
@@ -180,12 +173,22 @@ function ready() {
 
   names = Object.keys(haskier.networks);
 
-  for(var i = 0; i < names.length; i++)
-    networks[names[i].substr(0, names[i].lastIndexOf('.'))] = new Network(haskier.networks[names[i]]);
+  for(var i = 0, j, name, split; i < names.length; i++) {
+    name           = names[i].substr(0, names[i].lastIndexOf('.'));
+    domains[name]  = {};
+    split          = haskier.networks[names[i]].split('\n');
+
+    for(j = 0; j < split.length; j++) // For each line in the DNS file
+      if(split[j].length) // If line is not empty
+        domains[name][split[j].substr(0, split[j].indexOf(' '))] = split[j].substr(split[j].lastIndexOf(' ') + 1);
+  }
 
   /* Clock setup */
 
-  clockRefresh = function() {
+  clockMove = function() {
+    if(todo.length || !game.getVar('FREEZE_CLOCK_UNTIL_TODO'))
+      clock.addMinutes(1);
+
     vars.clock = {
       year   : clock.getFullYear(),
       month  : clock.getMonth() + 1,
@@ -201,10 +204,9 @@ function ready() {
     $('#clock').text(vars.clock.t_date + ' ' + vars.clock.t_hour);
   };
 
-  setTimeout(function() {
-    setInterval(clockRefresh, 60 * 1000);
-  }, ((60 - clock.getSeconds()) * 1000));
-  clockRefresh();
+  // Clock moves
+  clock = save.clock ? new Date(save.clock) : new Date(0);
+  $('#clock').hide();
 
   term.clear();
 
@@ -214,11 +216,25 @@ function ready() {
   } else
     updateServer('__local', 'Shaun');
 
+  console.info('Resolving whenLogged[] callbacks...');
+
+  for(i = 0; i < whenLogged.length; i++)
+    whenLogged[i]();
+
   updateUI();
+
+  if(haskier['service.js']) {
+    console.info('Starting up service.js...');
+    (new Function([], haskier['service.js'])).apply(window, []);
+  }
 
   gameStarted = true;
   console.info('Game     started in ' + (Date.now() - started) + ' ms\nWeb page started in ' + (Date.now() - webPageStarted) + ' ms');
 
+  if(fastdev && query['clear-console'])
+    console.clear();
+
+  term.focus();
   go();
 }
 
@@ -231,9 +247,12 @@ function ready() {
   */
 function startApp(app, serverName, returnError) {
   var _server = serverName ? servers[serverName] : server;
+  var local   = _server.dirExists('/apps/' + app);
+
+  console.warn(serverName + ' '.repeat(16 - serverName.length) + app);
 
   try {
-    (new Function(['server', 'register', 'load_translation', 'exec', 'getcmd', '$TOKEN'], _server.readFile('/apps/' + app + '/app.hps'))).apply(window, [_server, function(name, command) {
+    (new Function(['server', 'register', 'load_translation', 'exec', 'getcmd', 'include', 'whenLogged', '$TOKEN'], (local ? server : servers.__store).readFile('/apps/' + app + '/app.hps'))).apply(window, [_server, function(name, command) {
       if(typeof command.legend !== 'string' || !Array.isArray(command.arguments) || typeof command.callback !== 'function')
         fatal('Can\'t register invalid command "' + name + '"');
 
@@ -242,7 +261,7 @@ function startApp(app, serverName, returnError) {
       if(!(/^([a-zA-Z0-9_\-\{\}\.\$\/]+)$/.test(path)))
         return false;
 
-      var tr_file = _server.readFile('/apps/' + app + '/' + path.replace(/\$\{lang\}/g, language));
+      var tr_file = (local ? server : servers.__store).readFile('/apps/' + app + '/' + path.replace(/\$\{lang\}/g, language));
 
       if(typeof tr_file !== 'string')
         return false;
@@ -259,6 +278,10 @@ function startApp(app, serverName, returnError) {
       return serversCommands[serverName || window.serverName][cmd].apply(serversCommands[serverName || window.serverName], applyArgs);
     }, function(name) {
       return serversCommands[serverName || window.serverName].hasOwnProperty(name) ? serversCommands[serverName || window.serverName][name] : false;
+    }, function(file) {
+      return (local ? server : servers.__store).readFile('/apps/' + app + '/' + file);
+    }, function(callback) {
+      whenLogged.push(callback);
     }, clone(TOKEN || TOKENS.system /* fix a bug. Is that causing an issue ? */)]);
 
     return true;
@@ -295,9 +318,10 @@ function saveGame() {
 
     // Export all servers
     for(var i = 0; i < names.length; i++)
-      _servers[names[i]] = servers[names[i]].export();
+      if(names[i] !== '__store')
+        _servers[names[i]] = servers[names[i]].export();
 
-    localStorage.setItem('haskier', JSON.stringify({
+    localStorage.setItem('haskier', LZString.compressToUTF16(JSON.stringify({
       view    : term.export_view(),
       vars    : vars,
       time    : (new Date()).getTime(),
@@ -310,7 +334,7 @@ function saveGame() {
       label   : game.label(),
       marker  : game.marker(),
       dsas    : didSomethingAfterSave
-    }));
+    })));
   }
 
   catch(e) {
@@ -614,7 +638,7 @@ function treatQueue() {
       // And because condition contains 'todo.length' we know that todo list is not empty
 
       for(var i = 0; i < todo.length; i++) {
-        if(window.eval(todo[i])) {
+        if(todo[i][0] === 'command' && window.eval(todo[i][1])) {
           todo.splice(i, 1);
           i--;
         }
@@ -1035,6 +1059,96 @@ function updateServer(name, user) {
   server.chdir(users[user].home);
 }
 
+/**
+  * Parse a network URL
+  * @param {string} url
+  * @param {string} [network] Default: "hypernet"
+  * @return {object|boolean}
+  */
+function parseUrl(url, network) {
+  var names = Object.keys(domains[network || 'hypernet']), IP;
+
+  for(var i = 0; i < names.length; i++) {
+    if(url.substr(0, names[i].length + 1) === names[i] + '/') {
+      IP  = domains.hypernet[names[i]];
+      url = url.substr(names[i].length + 1);
+      break; // Break the loop to optimize performances
+    } else if(url === names[i]) {
+      IP  = domains.hypernet[names[i]];
+      url = '';
+      break; // Idem
+    }
+  }
+
+  return (IP ? {
+    IP : IP,
+    url: url
+  } : false);
+}
+
+/**
+  * Download a plain content
+  * @param {string} content
+  * @param {string} [filename]
+  */
+var blob_dw = (function() {
+  var a = document.createElement("a");
+  document.body.appendChild(a);
+  a.style = "display: none";
+  return function (data, fileName) {
+      var blob = new Blob([data], {type: "octet/stream"}),
+          url = window.URL.createObjectURL(blob);
+      a.href = url;
+      a.download = fileName || 'blob.dw';
+      a.click();
+      window.URL.revokeObjectURL(url);
+  };
+}());
+
+/**
+  * Run a function from time to time
+  * @param {string} moment
+  * @param {function} callback
+  */
+function every(moment, callback) {
+  var tmp;
+
+  if(typeof moment === 'string') {
+    tmp = {};
+    tmp[moment + (moment.substr(moment.length - 1, 1) === 's' ? '' : 's')] = 1;
+    moment = tmp;
+  }
+
+  var d = new Date(0)
+    d.setMonth  ((moment.months || -1) + 1);
+    d.setDate   ((moment.days   || 0) + 1);
+    d.setHours  ((moment.hours  || 0) + 1);
+    d.setMinutes(moment.minutes || 0);
+    d.setSeconds(moment.seconds || 0);
+
+  // Interval to run the callback, in ms
+  var every = d.getTime();
+  var cc    = new Date(clock.getTime());
+
+  var list = ['months', 'days', 'hours', 'minutes', 'seconds'], keys = Object.keys(moment), passedNot;
+
+  for(var i = 0; i < list.length; i++) {
+    if(moment[list[i]])
+      passedNot = true;
+
+    if(moment[list[i]] || passedNot)
+      cc[(moment[list[i]] ? 'add' : 'set') + (list[i] === 'days' && !moment[list[i]] ? 'Date' : ucfirst(list[i]))]((moment[list[i]] || 0) + (list[i] === 'months' ? 1 : 0));
+  }
+
+  // Timeout before launching the callback
+  var start_in = cc - clock;
+
+  setTimeout(function() {
+    setInterval(callback, every / (game.getVar('CLOCK_SPEED_COEFFICIENT') || 12));
+    callback();
+  }, start_in / (game.getVar('CLOCK_SPEED_COEFFICIENT') || 12));
+}
+
 var queue      = [];           // Commands' queue
 var runningCmd = false;        // Is running a command ?
 var vars       = {};           // All shell variables
@@ -1043,12 +1157,12 @@ var serverName ;               // Current server's name
 var serverUser ;               // Player is logged as user...
 var TOKEN      ;               // Player's token
 var serverLogged = [];         // Names of logged in servers
-var networks   = {};           // All networks instances
+var domains      = {};         // All domains DNS
 
 // Define #terminal as a terminal
 var term = $('#terminal').terminal(function(cmd, term) {
   // Fix an unknown bug
-  if(cmd.substr(0, 5) === '[i;;]' || cmd.substr(0, 4) === 'i;;]' || cmd.substr(0, 3) === 'i;;')
+  if(cmd.substr(0, 5) === '[i;;]' || cmd.substr(0, 4) === 'i;;]' || cmd.substr(0, 3) === 'i;;' || cmd.substr(0, 1) === ';')
     return ;
 
   // If there is a catch callback
@@ -1073,13 +1187,15 @@ var term = $('#terminal').terminal(function(cmd, term) {
     // Else, we run the command
     command(cmd);
 }, {
-  greetings    : '',
-  name         : 'haskier-terminal',
-  prompt       : '$ ',
-  onInit       : function() {
+  greetings     : '',
+  name          : 'haskier-terminal',
+  prompt        : '$ ' ,
+  linksNoReferer: true ,
+  clear         : false,
+  onInit        : function() {
     $('#terminal').append($('<div class="terminal-output"></div>').attr('id', 'autocomplete').html('<div><div style="width:100%;"><span></span></div></div>'));
   },
-  keydown      : function(e) {
+  keydown       : function(e) {
     if(ignoreKeys)
       return false;
 
@@ -1123,7 +1239,7 @@ var term = $('#terminal').terminal(function(cmd, term) {
 
     // Auto-completion
     var names, exists, args, base = split[0], completion = [], keys, has;
-    var width = 8, itemPerLine = 4; /* Autocompletion output style */
+    var width = 12, itemPerLine = 6; /* Autocompletion output style */
 
     // If the command is a unique word
     if(split.length === 1) {
@@ -1168,12 +1284,13 @@ var term = $('#terminal').terminal(function(cmd, term) {
       $('#autocomplete span').text('');
     } else {
       var tbl = [], str = '', max = 0;
+      completion = completion.sort();
 
       for(var e = 0; e < completion.length; e++)
         max = Math.max(max, completion[e].length);
 
       for(e = 0; e < completion.length; e++) {
-        str += escapeHtml(completion[e]) + '&nbsp;'.repeat(Math.max(1, width - completion[e].length));
+        str += escapeHtml(completion[e]) + ' '.repeat(Math.max(1, width - completion[e].length));
 
         if(str.length >= width * itemPerLine) {
           tbl.push(str);
@@ -1181,13 +1298,12 @@ var term = $('#terminal').terminal(function(cmd, term) {
         }
       }
 
-      str = tbl.join('\n') + (tbl.length ? '\n' : '') + str;
+      str = (tbl.join('<br/>') + (tbl.length ? '<br/>' : '') + str).replace(/ /g, '&nbsp;');
       $('#autocomplete span').html(str);
     }
 
     return false;
-  },
-  clear: false
+  }
 });
 
 // Load game save
@@ -1198,16 +1314,16 @@ var save, is_save; // Is there a valid save ?
 if(!saveSupport)
   alert(tr('Your browser doesn\'t support localStorage feature. Your will not be able to save your game.\nTo save your progression, please use a newer browser or update this one.'));
 else {
-  try {localStorage.setItem('__localStorage_test', 'abcdefghij'.repeat(25000) /* 250 Kb */); }
+  try { localStorage.setItem('__localStorage_test', 'abcdefghij'.repeat(25000) /* 250 Kb */); }
   catch(e) { alert(tr('localStorage test has failed. You will perhaps not be able to save your game.')); }
 
   localStorage.removeItem('__localStorage_test');
 
   if(save = localStorage.getItem('haskier')) {
-    try      { save = JSON.parse(save); }
-    catch(e) { alert(tr('Your Haskier\'s save seems to be corrupted. The save will be deleted, sorry.')); console.info('Haskier save is corrupted'); localStorage.setItem('haskier_corrupted_backup', save); localStorage.removeItem('haskier'); }
+    try      { save = JSON.parse(LZString.decompressFromUTF16(save)); }
+    catch(e) { alert(tr('Your Haskier\'s save seems to be corrupted.\nThe save will be deleted, sorry.')); console.info('Haskier save is corrupted'); localStorage.setItem('haskier_corrupted_backup', save); localStorage.removeItem('haskier'); save = null; }
 
-    if(typeof save === 'object') {
+    if(typeof save === 'object' && save) {
       if(save.time < 1458222083408 /* Time when this feature was created */) {
         // That ISN'T an Haskier save because time is not valid !
         localStorage.removeItem('haskier');
@@ -1282,13 +1398,16 @@ $.ajax({
   success : function(data) {
     haskier = data;
 
-    // Parse all scenaristic files
+    /* Parse all scenaristic files
     var filenames = Object.keys(data.hsf);
 
     for(var i = 0; i < filenames.length; i++)
       HSF_files[filenames[i]] = HSF.parse(data.hsf[filenames[i]], scope);
 
-    game = HSF_files['main.hsf'];
+    game = HSF_files['main.hsf']; */
+
+    try      { game = HSF.parse(data.hsf['main.hsf'], scope, data.hsf); }
+    catch(e) { report_bug('Failed to load scenaristic script', e.stack); }
 
     ready();
   },

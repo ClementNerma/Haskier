@@ -1,4 +1,3 @@
-
 {
   "$_date": "fr-FR",
 
@@ -25,6 +24,7 @@
   "Sleep the script during a while": "Mettre le script en pause",
   "Display only lines wich contains a text": "Afficher uniquement les lignes contenant un texte donné",
   "Edit a file": "Modifier un fichier",
+  "Schedule script's execution": "Planifier l'exécution d'un script",
 
   "New name": "Nouveau nom",
   "Variable's name": "Nom de la variable",
@@ -57,10 +57,13 @@
   "Filename": "Nom du fichier",
   "Line to write": "Ligne à écrire",
   "Number of lines to write": "Nombre de lignes à écrire",
+  "Time unit": "Unité de temps",
+  "File path": "Chemin vers le fichier",
 
   "command not found : ${cmd}": "commande non trouvée : ${cmd}",
   "A bug has been detected. Would you like to report it ?\n\nDetails :\n${err}\n\n${vars}": "Un bug a été détecté. Voulez-vous le reporter ?\n\nDétails :\n${err}\n\n${vars}",
   "Bug has been reported. Thank you !": "Le bug a été reporté. Merci !",
+  "Your Haskier's save seems to be corrupted.\nThe save will be deleted, sorry.": "Votre sauvegarde de jeu semble être corrompue.\nElle va être supprimée car inutilisable, désolé !",
   "Failed to report bug to server ;(": "Le report du bug a échoué ;(",
   "bad syntax for command `${cmd}` : ${err}": "mauvaise syntaxe pour la commande `${cmd}` : ${err}",
   "Your browser doesn't support localStorage feature. Your will not be able to save your game.\nTo save your progression, please use a newer browser or update this one.": "Votre navigateur ne supporte pas la fonctionnalité localStorage. Vous n'allez pas pouvoir sauvegarder.\nPour sauvegarder votre progression, utilisez un navigateur plus récent ou mettez à jour celui-ci.",
@@ -79,7 +82,6 @@
   "Failed to remove file": "Impossible de supprimer le fichier",
   "Failed to load game. Please try later.": "Impossible de charger les données de jeu. Veuillez réessayer plus tard.",
   "Game has stopped because of a fatal error": "Le jeu a été stoppé à cause d'une erreur",
-  "Bad network interface": "Mauvaise interface réseau",
   "Bad regex was specified": "La regex spécifiée n'est pas valide",
   "Missing opening slash": "Il manque le slash d'ouverture",
   "Missing closing slash": "Il manque le slash de fermeture",
@@ -89,7 +91,7 @@
   "You are not allowed to access event \"${event}\"": "Vous n'êtes pas autorisé à accéder à l'événement \"${event}\"",
   "You are not allowed to write \"${path}\"": "Vous n'êtes pas autorisé à écrire \"${path}\"",
   "You are not allowed to read \"${path}\"": "Vous n'êtes pas autorisé à lire \"${path}\"",
-  
+
   "Directory not found": "Le dossier n'existe pas",
   "Directory is not empty": "Le dossier n'est pas vide",
   "File or folder not found": "Le fichier ou dossier n'existe pas",
@@ -168,6 +170,8 @@
   "Restore a save backup": "Restaurer une copie (archive) de sauvegarde",
   "Estimate the save's size": "Estimer la taille de la sauvegarde",
   "(!) Restart the game": "(!) Recommencer le jeu",
+  "Export your backups": "Exportez vos archives",
+  "Import your backups": "Importez vos archives",
   "Choose the backup's name (letters, digits, ${green:_ -} allowed)": "Choisissez le nom de l'archive : (lettres, chiffres, ${green:_ -} autorisés)",
   "Wrong backup's name": "Nom d'archive invalide",
   "Backuped successfully": "Archive effectuée",
@@ -185,6 +189,14 @@
   "Disable": "Désactiver",
   "Enable": "Activer",
   "auto-save backup": "l'auto-archivage des sauvegardes",
+  "Specified file is not a valid backup container": "Le fichier spécifié n'est pas un conteneur d'archives valide",
+  "Do you want to clear the current storage ? This will erase all of your backups. Choose this option if the previous import failed.": "Voulez-vous effacer le stockage actuel ? Toutes vos archives vont être effacées. Choisissez cette option si l'importation précédente a échouée.",
+  "Clear storage ?": "Effacer le stockage ?",
+  "Storage has been cleared.": "Le stockage a bien été effacé.",
+  "Some backups have been restored, but importation n°${num} has failed.": "Certaines archives ont été restaurées, mais l'importation n°${num} a échouée",
+  "${num} backups have been imported successfully.": "${num} archives ont été importées avec succès.",
+  "Click into the window to select a file to import": "Cliquez dans la fenêtre pour sélectionner un fichier à importer",
+  "Waiting for import...": "En attente...",
 
    "${f_red,bold:You failed.} ${f_red,bold,italic:Game Over}.\nType \"${red,bold${str}}\" to recognize your defeat. Goodbye, ${italic,bold:${name}} !" :"${f_red,bold:Vous avez échoué.} ${f_red,bold,italic:Game Over}.\nTapez \"${red,bold:${str}}\" pour reconnaître votre défaite. Adieu, ${italic,bold:${name}} !",
    "I told you to type ${f_red,bold:${str}}": "Je vous ai dit d'écrire ${f_red,bold:${str}}",

@@ -47,13 +47,13 @@ register('icefox', {
     } else {
       // use Hypernet DNS
       // here, we have to find the IP adress
-      var parsed = networks.hypernet.parseUrl(url);
 
+      var parsed = parseUrl(url);
       if(!parsed)
-        return resolve('${red:' + tr('Specified URL is not valid') + '}');
+        return resolve('${red:' + tr('Cannot resolve DNS domain') + '}');
 
-      IP  = parsed.IP ;
       url = parsed.url;
+      IP  = parsed.IP ;
     }
 
     var content = '', eq, barSize = 50, finalUrl = url.split(/\//)[url.split(/\//).length - 1];
@@ -99,7 +99,7 @@ register('icefox', {
           updatePrompt();
 
           if(!dontResolve)
-            resolve((allowStyles ? content : fescape(content)).replace(/<%%>/g, '${yellow:=== script removed ===}'));
+            resolve((allowStyles ? content : fescape(content)).replace(/<%%>/g, '${yellow:=== Script removed ===}'));
         }
       }
     });

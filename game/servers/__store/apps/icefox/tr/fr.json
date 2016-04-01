@@ -8,7 +8,7 @@
   "Port to use. If omitted, use the port 80.": "Numéro du port à utiliser. Si omis, utilise le port 80.",
 
   "This server doesn't exist or isn't connected to hypernet": "Ce serveur n'existe pas ou n'est pas connecté à hypernet",
-  "Specified URL is not valid": "L'URL que vous avez spécifiée n'est pas valide",
+  "Cannot resolve DNS domain": "L'URL que vous avez demandée ne correspond à aucun nom de domaine enregistré",
   "Unable to write the download's location": "Impossible d'écrire dans le fichier de téléchargement",
   "Download has finished successfully": "Le téléchargement a bien été effectué"
 }

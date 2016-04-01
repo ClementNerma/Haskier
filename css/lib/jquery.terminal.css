@@ -138,8 +138,8 @@
     clear: both;
 }
 .terminal a {
-    color: #0F60FF;
-}
-.terminal a:hover {
-    color: red;
+    color: white;
+    text-decoration: none;
+    cursor: default;
+    pointer-events: none;
 }

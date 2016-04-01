@@ -5,5 +5,9 @@
   "VAMPP server is already running": "Le serveur VAMPP est déjà en cours d'exécution",
   "Requested file was not found": "Le fichier demandé n'existe pas",
   "VAMPP server is now running": "Le serveur VAMPP est maintenant en cours d'exécution",
-  "VAMPP server mouting has failed": "Le montage du serveur VAMPP a échoué"
+  "VAMPP server mouting has failed": "Le montage du serveur VAMPP a échoué",
+
+  "Bad VPC file": "Fichier VPC invalide",
+  "Bad URL rewriting syntax": "Mauvaise syntaxe de réécriture d'URL",
+  "Forbidden access": "Accès refusé"
 }

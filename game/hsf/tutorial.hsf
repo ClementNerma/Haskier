@@ -78,8 +78,8 @@ else if(menu is 7)
   if(test.approx.round < 250 * 1024 * 1024)
     "Il semblerait que vous ayez moins d'espace libre que l'espace minimal recommandé"
 
-    if(test.approx.round < 25 * 1024)
-      "${red:L'espace dont vous diposez est inférieur à 25 Kb. Vous risquez de ne plus pouvoir sauvegarder passé un certain point.}"
+    if(test.approx.round < 100 * 1024)
+      "${red:L'espace dont vous diposez est inférieur à 100 Kb. Vous risquez de ne plus pouvoir sauvegarder passé un certain point.}"
       "Afin d'éviter cela, suivez bien les instructions suivantes"
     endif
 

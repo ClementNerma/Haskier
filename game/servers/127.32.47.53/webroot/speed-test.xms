@@ -1,13 +1,13 @@
 <%\
 
-  var i = '', dir = networks.hypernet.parseUrl('..very-big.file');
+  var i = '', dir = parseUrl('master.net/..very-big.file');
   forceStyles();
   dontResolve();
 
   term.set_prompt('Démarrage du téléchargement...');
 
-  // Nothing is received !
-  servers[dir.IP].writeFile('/webroot/..very-big.file', 'SSBhbSBhIHVzZWxlc3MgZmlsZSwgbXkgZ29hbCBpcyBqdXN0IHRvIHRlc3QgeW91ciBoeXBlcm5ldCBjb25uZWN0aW9uIDop\n'.repeat(1000));
+  var hypernetSpeed = server.readJSON('/.sys/server.sys').networks.hypernet.speed;
+  servers[dir.IP].writeFile('/webroot/..very-big.file', 'SSBhbSBhIHVzZWxlc3MgZmlsZSwgbXkgZ29hbCBpcyBqdXN0IHRvIHRlc3QgeW91ciBoeXBlcm5ldCBjb25uZWN0aW9uIDop\n'.repeat((fastdev && query['fast-network'] ? parseInt(query['fast-network']) || 16384 : hypernetSpeed) / 10));
 
   server.download({
     url     : dir.url,
@@ -17,7 +17,7 @@
         i = '';
 
       i += '.';
-      term.set_prompt('Test de la connexion internet : ' + c + '/' + m + ' (' + (p * 100).toFixed(2) + '%)' + i);
+      term.set_prompt('Test de la connexion internet : ' + c + '/' + m + ' (' + Math.floor(p * 100) + '%)' + i);
     },
     success : function(ct, results) {
       display(results.size + ' octets ont été téléchagés en ' + (results.time / 1000) + ' secondes');

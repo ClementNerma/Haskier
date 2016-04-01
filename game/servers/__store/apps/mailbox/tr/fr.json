@@ -1,0 +1,31 @@
+{
+  "Specified adress was not found": "L'adresse spécifiée n'existe pas",
+  "Mailbox requires an access to appdata directory": "Mailbox nécessite un accès au dossier appdata",
+  "Manage your emails": "Gère vos emails",
+  "You haven't configured any account yet": "Vous n'avez configuré aucun compte",
+  "Please fill your identifiers now to use Mailbox": "Veuillez saisir vos identifiants pour utiliser Mailbox",
+  "Failed to load server's informations. Please try again": "La requête vers le serveur a échouée. Veuillez réessayer.",
+  "This email adress doen't exist.": "Cette adresse e-mail n'existe pas.",
+
+  "Login to your account": "Se connecter à votre compte",
+  "Email to login as": "Adresse e-mail à laquelle se connecter",
+  "Password for specified email": "Mot de passe pour l'adresse e-mail spécifiée",
+  "Command-line logger requires an email adress": "L'outil de connexion requiert une adresse email",
+  "Command-line logger requires a password": "L'outil de connexion requiert un mot de passe",
+
+  "Wrong credentials, server refused login. Please try again.": "Identifiants invalides, le serveur a refusé la connexion. Veuillez réessayer.",
+  "Failed to write configuration file. Please try again.": "Échec durant l'écriture du fichier de configuration. Veuillez réessayer.",
+  "You've been successfully logged in.\nWelcome, ${firstName} ${lastName} !": "Vous avez été connecté avec succès.\nBienvenue, ${firstName} ${lastName} !",
+
+  "Inbox": "Boîte de réception",
+  "Sent" : "Envoyé",
+  "Trash": "Corbeille",
+  "Archives": "Archives",
+
+  "No subject"  : "Aucun sujet",
+  "Back to home": "Retourner au menu",
+  "Subject :"   : "Sujet :",
+  "Date    :"   : "Date  :",
+
+  "Press Return key to continue...": "Appuyez sur Entrée pour continuer..."
+}

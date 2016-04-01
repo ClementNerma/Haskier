@@ -5,5 +5,14 @@
       "hypernet": {
         "speed": 1024
       }
+    },
+    "users": {
+      "system": {
+        "password": "U6a90rVFC5fYtRge_d2(_2Sj]WmMSL",
+        "token": {
+          "catch": "*"
+        },
+        "home": "/webroot"
+      }
     }
 }

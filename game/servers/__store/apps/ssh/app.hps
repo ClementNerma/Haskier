@@ -26,7 +26,7 @@ register('ssh', {
     if(!servers.hasOwnProperty(IP))
       return display_error(tr('This server doesn\'t exist'));
 
-    var sys = servers[IP].readJSON('.sys/server.sys');
+    var sys = servers[IP].readJSON('/.sys/server.sys');
 
     if(!sys || sys.ssh === false)
       return display_error(tr('Server refused the SSH connection'));

@@ -6,19 +6,38 @@ var HSF = (new (function() {
     * Parse a HSF code
     * @param {string} code
     * @param {object} [makeScriptScope] Returns an instance of HSF.Script with this scope (default: false)
+    * @param {object} [files] All include files
     * @return {Array|Error}
     */
 
-  this.parse = function(code, makeScriptScope) {
+  this.parse = function(code, makeScriptScope, files) {
     var out = [], match, j, line;
+    files = files || {};
+
+    // Perform the #include checking
+    code = code.replace(/^#include *\( *"([a-zA-Z0-9_\.\-\/]+)" *\)$/mg, function(match, file) {
+      // Include a file
+
+      var f = files;
+      file = file.split('/');
+
+      for(var i = 0; i < file.length; i++) {
+        if(!f.hasOwnProperty(file[i]))
+          // ERROR
+          throw new Error('Missing include file "' + file.join('/') + '"');
+
+        f = f[file[i]];
+      }
+
+      return f;
+    });
+
     code = code.split('\n');
 
     for(var i = 0; i < code.length; i++) {
       line = code[i].trim();
       if(line.length && line.substr(0, 2) !== '//' && line.substr(0, 2) !== '/*') {
-        if(match = line.match(/^#include *\( *"([a-zA-Z0-9_\.\-]+)" *\)$/))
-          out.push({include: match[1]});
-        else if(match = line.match(/^: *([a-zA-Z0-9_]+) *\[(.*)\]$/))
+        if(match = line.match(/^: *([a-zA-Z0-9_]+) *\[(.*)\]$/))
           out.push({label: match[1], data: match[1]});
         else if(match = line.match(/^: *([a-zA-Z0-9_]+) *(\-|=)> *(.*) *\[(.*)\]$/))
           out.push({label: match[1], marker: match[3], data: match[4]});
@@ -116,42 +135,6 @@ var HSF = (new (function() {
           _label = code[i].label;
           // ... and run the next instruction
           return this.step();
-        }
-
-        // If this line is an include
-        if(code[i].include) {
-          // If there is no #inclde catcher
-          if(!events.include) {
-            // ERROR
-            var err = new Error('Failed to include file "' + code[i].include + '" because no #include catcher is present');
-            console.error(err);
-            return err;
-          }
-
-          // Call the #include catcher for getting the file's content
-          var content = events.include(code[i].include);
-
-          // If a string is returned, that's a plain code
-          if(typeof content === 'string')
-            // So we've to parse it
-            content = this.parse(content);
-          else
-          // If that's a script instance
-          if(content instanceof HSF.Script)
-            // We get its lines
-            content = content.getCode();
-          else {
-            // Here, that's not a parsed content, so the returned value is wrong
-            // ERROR
-            var err = new Error('#include catcher returned a bad value for file "' + code[i].include + '"');
-            console.error(err);
-            return err;
-          }
-
-          // Insert the file's content here
-          code.splice.apply(code, [i, 1].concat(content));
-          go();
-          return ;
         }
 
         var line = code[i], _scope = [], keys = Object.keys(scope), vals = [];

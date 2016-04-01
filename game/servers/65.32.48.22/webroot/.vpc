@@ -1,0 +1,4 @@
+ForbidAccess accounts/(.*)
+
+RewriteRule (.*)\.xms $&
+RewriteRule (.*) $1.xms

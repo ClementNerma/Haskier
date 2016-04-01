@@ -1,3 +1,27 @@
+Fr 01-04-2016
+Haskier b-0.4
+- Added `mailbox` application (`mail-cli` command) and its relay server
+- Dialogs can be passed with the ArrowDown key
+- Improved VAMPP  : support of VPC files, including URL Rewriting and forbidden access
+- Improved IceFox : use of new DNS norm : DNS files only associate domains names to an IP
+- Improved save manager : Added import/export feature
+- Added shell scheduler : `every` command
+- Reduced save file. At game's beginning : 90 Kb -> 50 Kb -> 18 Kb -> 5 Kb !
+
+*** === Misc === ***
+- `pico` editor will ask you if you want to save changes when leaving the editor
+- Improved #include directive in HSF parser : now sub-folders files can be included
+- Added `setInitialClock`, `launchClock`, `wait_clock` HSF commands
+- VAMPP : Remove last empty line
+- Applications can now run a function when user is logged in local server
+- Added service.js support
+- Added JavaScript schedule (`every` function)
+
+*** === Bug fixes === ***
+- Fixed a bug with Server.download() : If the request was containing URL query (ex: 'page?param=value') and data field, the result was 'page?param=value?param2=value2'
+- Fixed 2 bugs that happens when a corrupted save is found
+- Fixed a bug with SSH application that was read `.sys/server.sys` with a relative path
+
 Th 31-03-2016
 Haskier b-0.3
 - Added `cp`, `mv` ; `edit` command for simple file editing

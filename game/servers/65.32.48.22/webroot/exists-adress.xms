@@ -1,0 +1,22 @@
+<%
+  var name = request.data.adress;
+
+  if(!name)
+    response.headers.code = 400;
+  else {
+    if(name.indexOf('@') !== -1) {
+      if(name.substr(name.indexOf('@') + 1) === 'terno.fr')
+        name = name.substr(0, name.indexOf('@'));
+      else {
+        response.content = 'false';
+        return ;
+      }
+    }
+
+    if(!name.match(/^([a-zA-Z0-9_\-\.]+)$/))
+      response.headers.code = 400;
+    else
+      echo(server.fileExists('/webroot/accounts/' + name + '.account') ? 'true' : 'false');
+  }
+
+%>

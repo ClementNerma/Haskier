@@ -4,5 +4,6 @@
   "Exit": "Quitter",
   "Please input the file path": "Veuillez saisir l'emplacement du fichier",
   "Failed to write changes in a temporary file": "Impossible d'écrire les modifications dans un fichier temporaire",
-  "All changes were written in": "Toutes les modifications ont été écrits dans"
+  "All changes were written in": "Toutes les modifications ont été écrites dans",
+  "Do you want to save changes ?": "Voulez-vous sauvegarder vos modifications ?"
 }

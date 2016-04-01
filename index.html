@@ -25,13 +25,14 @@
   <script type="text/javascript" src="js/lib/date/date.js"></script>
   <script type="text/javascript" src="js/lib/date/core.js"></script>
   <script type="text/javascript" src="js/lib/date/parser.js"></script>
+  <!-- Load JS localStorage compression tool !-->
+  <script type="text/javascript" src="js/lib/lz-string.min.js"></script>
   <!-- Load game files !-->
   <script type="text/javascript">var _confirm = confirm;</script>
   <script type="text/javascript" src="js/tests.js"></script>
   <script type="text/javascript" src="js/comm.js"></script>
   <script type="text/javascript" src="js/translate.js"></script>
   <script type="text/javascript" src="js/commands.js"></script>
-  <script type="text/javascript" src="js/network.js"></script>
   <script type="text/javascript" src="js/server.js"></script>
   <script type="text/javascript" src="js/hsf-parser.js"></script>
   <script type="text/javascript" src="js/hsf-scope.js"></script>
@@ -39,12 +40,14 @@
 
   <script type="text/javascript">
     // Debug methods
-    function r()    { localStorage.clear(); window.location.reload();    }
-    function b(f)   { var d; d = Date.now(); f(); return Date.now() - d; }
-    function l(n)   { var r = JSON.parse(localStorage.getItem('haskier')); return n ? r[n] : r; }
-    function u(n,s) { var l;if(s){l=serverName;server=servers[s];}var r=server.importFolder({folder:haskier.servers.__store.webroot[n],table:{},path:'/webroot/'+n},'apps/'+n);if(r){saveGame();startApp(n);}if(l){server=servers[l];}return r; }
-    function s()    { for(var i in servers) servers[i].import(haskier.servers[i], 'files'); }
+    function r()     { localStorage.clear(); window.location.reload();    }
+    function b(f)    { var d;d=Date.now();f();return Date.now()-d; }
+    function l(n)    { var r=JSON.parse(localStorage.getItem('haskier'));return n?r[n]:r; }
+    function u(n,s)  { var l;if(s){l=serverName;server=servers[s];}var r=server.importFolder({folder:haskier.servers.__store.webroot[n],table:{},path:'/webroot/'+n},'apps/'+n);if(r){saveGame();startApp(n);}if(l){server=servers[l];}return r; }
+    function s()     { for(var i in servers) servers[i].import(haskier.servers[i], 'files'); }
     function bt(f,n) { var d,i;n=n||100;d=Date.now();for(i=0;i<n;i++){f();}return Math.floor((Date.now()-d)/n); }
+    function ls(n)   { var r=localStorage.getItem('haskier');return(n?JSON.stringify(JSON.parse(r)[n]).length:r.length); }
+    function sz(o)   { return(JSON.stringify(o).length); }
   </script>
 </body>
 </html>

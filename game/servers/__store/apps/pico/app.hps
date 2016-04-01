@@ -2,6 +2,7 @@
 load_translation('tr/${lang}.json');
 
 var _init = false, cursor = {y: 0}, lines = [], display, pico, resolver, filepath, fixBug = false;
+var tmp_file = '/users/' + serverUser + '/.tmp/pico.file';
 
 register('pico', {
   legend   : tr('Text editor'),
@@ -103,32 +104,37 @@ register('pico', {
                 pico.hide();
                 term.focus();
 
-                if(filepath) {
-                  if(!server.writeFile(filepath, getAllText()))
-                    resolver('${err:' + tr('Failed to write file') + '}');
-                  else
-                    resolver();
-                } else {
-                  ignoreKeys = false;
+                ignoreKeys = false;
 
-                  question(tr('Please input the file path') + ' :', function(ans) {
-                    if(ans && !server.writeFile(ans, getAllText()))
+                confirm(tr('Do you want to save changes ?'), function(ans) {
+                  if(!ans)
+                    return resolver();
+
+                  if(filepath) {
+                    if(!server.writeFile(filepath, getAllText()))
                       resolver('${err:' + tr('Failed to write file') + '}');
-                    else if(ans)
+                    else
                       resolver();
-                    else {
-                      var tmp_file = '/users/' + serverUser + '/.tmp/pico.file';
+                  } else {
+                    ignoreKeys = false;
 
-                      if(!needsWrite(tmp_file))
-                        return resolver();
+                    question(tr('Please input the file path') + ' [' + tmp_file + '] :', function(ans) {
+                      if(ans && !server.writeFile(ans, getAllText()))
+                        resolver('${err:' + tr('Failed to write file') + '}');
+                      else if(ans)
+                        resolver();
+                      else {
+                        if(!needsWrite(tmp_file))
+                          return resolver();
 
-                      if(!server.writeFile(tmp_file, getAllText()))
-                        resolver('${err:' + tr('Failed to write changes in a temporary file') + '}');
-                      else
-                        resolver(tr('All changes were written in') + ' ' + tmp_file);
-                    }
-                  });
-                }
+                        if(!server.writeFile(tmp_file, getAllText()))
+                          resolver('${err:' + tr('Failed to write changes in a temporary file') + '}');
+                        else
+                          resolver(tr('All changes were written in') + ' ' + tmp_file);
+                      }
+                    });
+                  }
+                });
 
                 break;
             }

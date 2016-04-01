@@ -116,10 +116,19 @@ var scope = {
   },
 
   todoModels: {},
+
   setTodoModel: function(name, model) {
     scope.todoModels[name] = model;
     go();
   },
+
+  setInitialClock: function(_clock) {
+    if(!save.clock)
+      clock = _clock;
+
+    go();
+  },
+
   todo: function() {
     // todo = []; // useless here
 
@@ -148,7 +157,9 @@ var scope = {
   },
 
   goto: function(label) {
-    game.goLabel(label);
+    if(!game.goLabel(label))
+      report_bug('Scenaristic file tried to go to label "' + label + '", but operation has failed');
+
     go();
   },
 
@@ -249,7 +260,7 @@ var scope = {
   download: function(ip, file) {
     // Dependency !!! Try to remove it !
     servers['127.32.47.53'].writeFile('/webroot/______', servers[ip].readFile(file));
-    exec('icefox ______ -d ______', function() {
+    exec('icefox master.net/______ -d ______', function() {
       display('\nFichier : ${f_cyan,italic:' + file.split('/')[file.split('/').length - 1] + '}\n\n=================================\n${italic:' + /*fescape(*/server.readFile('______')/*)*/.split('\n').join('}\n${italic:') + '}\n=================================\n');
       servers['127.32.47.53'].removeFile('/webroot/______');
       server.removeFile('______');
@@ -268,5 +279,28 @@ var scope = {
 
   exec: function(cmd) {
     exec(cmd);
+  },
+
+  launchClock: function() {
+    $('#clock').show();
+    clockMove();
+    setInterval(clockMove, 1000 * 60 / (game.getVar('CLOCK_SPEED_COEFFICIENT') || 12));
+    go();
+  },
+
+  wait_clock: function(future) {
+    var models = {h: 'Hours', m: 'Minutes', s: 'Seconds', d: 'Days', M: 'Months', y: 'Years', w: 'Weeks'},
+        date   = new Date(clock.getTime());
+
+    future.replace(/(^| )(\+|\-)([a-zA-Z]) ([0-9]{1,2})/g, function(match, _, op, model, num) {
+      date['add' + models[model]](parseInt(num) * (op === '-' ? -1 : 1));
+    });
+
+    scope.todo(date.getTime());
+
+    setTimeout(function() {
+      todo = [];
+      go();
+    } ,(date - clock) / (game.getVar('CLOCK_SPEED_COEFFICIENT') || 12) * (fastdev === false || !query['fast-clock']));
   }
 };

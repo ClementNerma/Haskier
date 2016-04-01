@@ -1,0 +1,70 @@
+<%
+
+  if(!request.data.token)
+    return (response.headers['code'] = 400);
+
+  var users = server.ls('/webroot/accounts'), user, path;
+
+  for(var i = 0; i < users.length; i++) {
+    user = server.readJSON(path = '/webroot/accounts/' + users[i]);
+
+    if(!user)
+      return (response.headers['code'] = 500);
+
+    if(user.account.token === request.data.token)
+      break;
+
+    user = null;
+  }
+
+  if(!user)
+    return (response.headers['code'] = 403);
+
+  // Treat request here
+
+  var $ = request.data, ans = [], answers = {
+    'list-inboxes': function() { return user.boxes; },
+    'new-messages': function() {
+      var out = [];
+
+      for(var i = 0; i < user.messages.length; i++)
+        if(user.messages[i].box === 'inbox')
+          out.push(user.messages[i]);
+
+      return user.boxes;
+    },
+    
+    'get-box': function(box) {
+      var out = [];
+
+      for(var i = 0; i < user.messages.length; i++)
+        if(user.messages[i].box === box) {
+          delete user.messages[i].content;
+          out.push(user.messages[i]);
+
+          if(out.length >= 10)
+            break;
+        }
+
+      return out;
+    },
+
+    'get-mail': function(id) {
+      for(var i = 0; i < user.messages.length; i++)
+        if(user.messages[i].id === id)
+          return user.messages[i];
+    }
+  }, actions = Object.keys(answers);
+
+  var answer = {};
+
+  for(var i = 0; i < actions.length; i++)
+    if($[actions[i]])
+      answer[actions[i]] = answers[actions[i]]($[actions[i]]);
+
+  if(Object.keys(answer).length === 1)
+    echo(JSON.stringify(answer[Object.keys(answer)[0]]));
+  else
+    echo(JSON.stringify(answer));
+
+%>

@@ -1,10 +1,17 @@
 // HSF: Haskier Scenario File
 
 // Define some todo models
-setTodoModel('open-communication-port', 'server.state(\'communication-opened\') === true')
-setTodoModel('disable-firewall', 'server.state(\'firewall-opened\') === false')
-FREEZE_UNTIL_TODO = true ;
-ALLOW_TRANSLATION = false;
+setTodoModel('open-communication-port', ['command', 'server.state(\'communication-opened\') === true'])
+setTodoModel('disable-firewall', ['command', 'server.state(\'firewall-opened\') === false'])
+// Set the initial clock
+setInitialClock(Date.parse('03/07/2016 19:10:00'));
+// Set some constants
+FREEZE_UNTIL_TODO       = true ;
+ALLOW_TRANSLATION       = false;
+FREEZE_CLOCK_UNTIL_TODO = true ;
+CLOCK_SPEED_COEFFICIENT = 12  ;
+// Show the clock
+launchClock();
 // Restore the game's save
 restore()
 
@@ -14,129 +21,14 @@ choice("Voir le tutoriel (recommandé si vous jouez pour la première fois à ${
 if(answer is 2)
   display("Bon jeu !")
   sleep(2000)
-  goto("MISSION_01")
+  goto("MISSION_00")
 endif
 
 : TUTORIAL_CONTENT
 #include("tutorial.hsf")
 
-: MISSION_01 => Début du jeu [checkpoint]
-clear()
-"${b_blue:Système} ${italic:Quelqu'un cherche à vous joindre}"
-"${b_blue:Système} ${italic:Pour ouvrir la communication, tapez} <${cyan:com open}>"
-todo('open-communication-port');
+: MISSIONS
+#include("missions/00.hsf")
 
-"Communication entrante..."
-"Ouverture du réseau..."
-"${b_red,f_white: - Bloqué par le pare-feu - }"
-"Veuillez désactiver le pare-feu\nPour plus d'informations, tapez <${cyan:help firewall}>"
-todo('disable-firewall');
-
-: TALKING => Premier dialogue avec K [checkpoint]
-"Veuillez patienter..."
-"Réception de la communication"
-incoming("???");
-"Bonsoir ${name} !"
-"Vous voyez qui je suis, n'est-ce pas ?"
-"C'est le chef qui m'envoie"
-"Vous avez réussi à hacker nos serveurs et me voilà donc"
-"J'ai trouvé le fichier que vous aviez laissé sur notre serveur principal"
-download('86.32.54.28', 'documents/hack.txt');
-sleep(5000)
-"Ai-je besoin d'ajouter quelque chose ?"
-"Très bien. Appellez-moi ${italic:K}"
-human_talking = "K"
-"C'est moi qui suis chargé de la cellule d'enquête de notre organisation, ${italic:Anonymas}"
-"Je dois avouer que j'ai été surpris lorsque vous avez récupéré la liste des membres"
-"Mais ceux qui ont été chargés de le sécuriser n'ont apparemment pas bien fait leur travail"
-"Enfin, quoi qu'il en soit, vous disposez maintenant de la liste de nos effectifs, n'est-ce pas ?"
-"Vous avez laissé suffisamment d'informations derrière vous pour que nous vous croyions"
-"Maintenant, me voici"
-"Que voulez-vous en échange de votre silence ?"
-choice('Une place dans votre organisation');
-"Une place dans notre organisation... ?"
-"Très bien. Je vais voir ce que je peux faire"
-"Attendez un peu"
-taken("K", 10000)
-"Mes supérieurs sont prêts à vous prendre à l'essai"
-"Je vous laisse vous préparer. Rouvrez la communication lorsque vous serez prêts"
-incomingEnd();
-todo('open-communication-port');
-
-: READY_FOR_TEST => Prêt pour le test [checkpoint]
-incoming("K");
-"Voici l'épreuve"
-"Vous devez, à l'aide des outils dont vous disposez sur votre ordinateur, réussir à récupérer le code qui se trouve sur notre serveur de test."
-"Son adresse IP est ${italic:127.2.5.36}. Il ne dispose d'aucune sécurité particulière, ce devrait être un vrai jeu d'enfant pour vous, n'est-ce pas ?"
-"Lorsque vous aurez trouvé, rouvrez le port communication et donnez-moi le code"
-"À tout de suite"
-incomingEnd();
-
-sleep(1000);
-" "
-"${b_white,f_black: Aide } Essayez d'utiliser la commande ${italic:ssh-hack}"
-"${b_white,f_black: Aide } Tapez <${cyan:ssh-hack}> suivi d'une adresse IP, comme ceci :"
-"${b_white,f_black: Aide } Tapez <${cyan:ssh-hack 0.0.0.0}>"
-" "
-
-todo('open-communication-port');
-
-: FOUND_TEST_CODE
-incoming("K")
-"Quel est le code que vous avez trouvé ?"
-code = question()
-"${scope.code} ?"
-
-if(code is 5479)
-  "Effectivement, c'est bien le bon code."
-else
-  "Je suis désolé, mais ce n'est pas le bon code."
-  gameOver()
-endif
-
-"Je vais maintenant vous soumettre à un deuxième test, pour voir si vous pouvez vraiment aller loin."
-"Vous allez pirater le serveur dont l'adresse IP est ${italic:127.32.48.53} et écrire ${italic:test réussi} dans le fichier ${italic:try.txt}"
-"Rouvrez le port communication une fois que ça sera fait."
-incomingEnd()
-todo('open-communication-port');
-
-: WRITED_TEST_FILE
-incoming("K");
-"Voyons voir..."
-"Je me connecte au serveur..."
-sleep(3000)
-
-if(servers['127.32.48.53'].readFile('/users/guest/try.txt') is "test réussi")
-  "Le fichier a bien été modifié"
-else
-  "Le fichier n'est pas correct"
-  gameOver()
-endif
-
-"Vous avez réussi l'épreuve d'essai. Nul doute que vous avez à votre disposition d'excellents outils."
-"Vous faites maintenant partie de l'organisation... Du moins, dans un premier temps."
-"Nous prendrons le soin de vérifier vos informations avant de vous laisser l'accès à toutes nos données."
-"J'espère que vous n'y voyez aucun problème ?"
-
-choice('Absolument pas', 'Si')
-
-if(answer is 2)
-  "Vraiment ? Qu'avez-vous donc à cacher ?"
-  "Enfin, si vous n'êtes pas d'accord avec cela, nous ne pourrons vous considérer comme l'un de nos membres plus longtemps."
-
-  choice('Je m\'excuse', 'Tant pis !');
-
-  if(answer is 1)
-    "Tant mieux !"
-  else
-    "Vraiment dommage... Dans ce cas pourquoi nous avoir contacté ?"
-    "Nous ne pouvons donc pas vous laisser faire partie de l'organisation"
-    gameOver()
-  endif
-else
-  "Tant mieux."
-endif
-
-"Je vous recontacterai dès que nous serons absolument certains que nous pouvons vous faire intégrer l'organisation sans problème."
-incomingEnd();
+: GAME_WON
 gameWon();

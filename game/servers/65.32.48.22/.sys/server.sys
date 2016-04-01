@@ -1,5 +1,5 @@
 {
-    "description": "Master Hypernet server",
+    "description": "Mailbox relay server",
     "ssh": false,
     "networks": {
       "hypernet": {
