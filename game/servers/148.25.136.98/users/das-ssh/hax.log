@@ -1,0 +1,19 @@
+=== Logfile $2568 ===
+145875621 SSH connect from external IP
+145875621 $ user  : hax
+          $ access: /users/hax
+          $ token : type=default,status=unwrited,md5_checker=enabled
+          $ tool  : name=ssh-hack,db=unknown,username=unknown
+          $ refer : status=unknown
+          $ bridge: ssh_connect,clients=1
+122752628 SSL hax enabled
+122456987 Errno SSL bridge broken
+122125687 SQL inject on DB DataConf
+122125686 VAMPP sec $is injoin
+122125686 Conf changed : status=writed,line=8
+122112586 srv_hash_edit={status=true},noone=unknown
+120456788 srv_changed_neo={status=true},noone=admin
+119305887 master_changed={neo={status=writed}},group=administrators
+115675685 SSH connect from internal IP
+          $ log erased
+114106854 SSH enabled

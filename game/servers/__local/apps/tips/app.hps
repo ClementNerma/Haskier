@@ -1,0 +1,81 @@
+
+var messages = [
+  {
+    title  : 'Auto-complétion',
+    content:
+      'Lorsque vous saisissez une commande ou un argument, vous pouvez appuyer sur la touche ${bold:Tab} pour auto-compléter votre saisie.\n \
+       Par exemple, si vous tapez "e" et appuyez sur ${bold:Tab}, l\'auto-complétion apparaîtra et vous proposera "echo" et "edit". Si vous\n \
+       rajoutez un "c" (ec) et appuyez à nouveau sur ${bold:Tab}, le mot "echo" remplacera votre saisie.\n\n \
+       Cela marche également avec les arguments de commande. Par exemple, si vous tapez "icefox --al" et appuyez sur ${bold:Tab},\n \
+       l\'auto-complétion vous proposera "--allow-scripts" et "--allow-styles".\n\n \
+       Pour finir, les noms de fichiers sont également auto-complétés. Si vous êtes à la racine et que vous tapez "cd /users/Sh" et appuyez\n \
+       sur ${bold:Tab}, votre saisie sera remplacée par "cd /users/Shaun".\n\n \
+       Enfin, si vous appuyez sur ${bold:Tab} sans avoir rien saisi, la liste des commandes disponible sera affichée sous forme de colonnes.\n \
+       Après avoir saisi un nom de commande, tous les noms d\'arguments et les fichiers vous seront proposés.'
+  },
+  {
+    title   : 'Archiveur de sauvegarde',
+    content :
+      'Lorsque vous perdez, votre sauvegarde de jeu est effacée. Pour reprendre votre progression, vous devez utiliser la commande <${cyan:save}>\n \
+       qui vous donne accès au ${bold:Gestionnaire d\'archives} (Save Manager). Celui-ci vous permet de créer des archives de votre sauvegarde\n \
+       et de les restaurer après un ${f_red,italic,bold:Game Over}.\n\n \
+       Par ailleurs, des archives de votre sauvegarde sont effectuées à des points-clés du jeu, par exemple au début de chaque mission.0'
+  },
+  {
+    title   : 'Historique et rappel de commandes',
+    content :
+      'Lorsque vous exécutez une commande, celle-ci est stockée dans un historique. Par défaut, celui-ci a une capacité de 300 commandes.\n \
+       Pour consulter l\'historique, exécutez simplement la commande <${cyan:history>.\n \
+       Si vous souhaitez uniquement consultez les 5 dernières entrées, par exemple, tapez <${cyan:history 5}>.\n\n \
+       Vous pouvez également récupérer les dernières commandes que vous avez saisies en appuyant sur la touche ${bold:Flèche haut}.\n \
+       Naviguez alors entre les entrées avec les touches ${bold:Flèche haut} et ${bold:Flèche bas}.'
+  }
+];
+
+var prepare = [], j, split;
+
+for(var i = 0; i < messages.length; i++) {
+  prepare.push(messages[i].title);
+
+  split = messages[i].content.split('\n');
+
+  for(j = 0; j < split.length; j++)
+    split[j] = split[j].trim();
+
+  messages[i].content = split.join('\n');
+}
+
+register('tips', {
+  legend   : 'Quelques astuces sur le jeu...',
+  arguments: [],
+  async    : true,
+  callback : function(resolve) {
+    function home() {
+      choice(prepare.concat('${cyan:Quitter}'), function(ans, title) {
+        if(ans === prepare.length + 1)
+          return resolve();
+
+        display(' ');
+        display('${italic,f_grey:=== ' + title + ' ===}');
+        display(' ');
+        display(messages[ans - 1].content);
+        display(' ');
+        display(' ');
+
+        ignoreKeys = false;
+        keydownCallback = function(e) {
+          if(e.keyCode === 13) {
+            term.clear();
+            home();
+          } else
+            return RESTORE_KEYDOWN_CALLBACK;
+        };
+
+        dontRecoverPrompt = true;
+        term.set_prompt(format('${italic:Appuyez sur Entrée pour continuer...}'));
+      });
+    }
+
+    home();
+  }
+});

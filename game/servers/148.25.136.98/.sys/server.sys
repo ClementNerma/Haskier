@@ -1,0 +1,19 @@
+{
+  "description": "Anonymas - Serveur DAS",
+  "users": {
+    "das-ssh": {
+      "password": "d@5S5HAçç€sp@s5v0rD",
+      "token": {
+        "catch": [],
+        "include": ["/users/das-ssh"],
+        "includeRead": ["/users/das-ssh"]
+      },
+      "home": "/users/das-ssh"
+    }
+  },
+  "networks": {
+    "hypernet": {
+      "speed": 8192
+    }
+  }
+}

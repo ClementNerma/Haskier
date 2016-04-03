@@ -1,8 +1,8 @@
 clear()
-menu = choice('Pour commencer...', 'Sauvegardes', 'Restaurer sa partie après un Game Over', 'Serveurs et réseaux', 'Boutique d\'applications', 'Partage de fichiers', '${blue:Vérifier le stockage local}', '${cyan:Quitter}');
+choice('Pour commencer...', 'Sauvegardes', 'Restaurer sa partie après un Game Over', 'Serveurs et réseaux', 'Boutique d\'applications', 'Partage de fichiers', '${blue:Vérifier le stockage local}', '${cyan:Quitter}');
 
 // There is one else that causes a JS error
-if(menu is 1)
+if(answer is 1)
   "${f_grey,italic:=== Introduction ===}\n"
   "Bienvenue dans le ${b_blue:tutoriel} de ${haskier}."
   "${haskier} est un jeu dans lequel vous incarnez ${name}, un jeune étudiant de 17 ans, passionné de sécurité informatique."
@@ -31,34 +31,34 @@ if(menu is 1)
   "Lorsque vous saisissez une commande, appuyez sur la touche ${bold:Entrée} pour l'exécuter"
   "Si un message en rouge s'affiche, alors il est probable qu'une erreur se soit produite. Lisez alors le message affiché à l'écran."
   "Il s'agit généralement d'une mauvaise utilisation de la commande (mauvais argument...)\n"
-else if(menu is 2)
+else if(answer is 2)
   "\n${f_grey,italic:=== Sauvegardes ===}\n"
   "Votre partie est automatiquement sauvegardée lorsque vous rentrez une commande."
   "Cependant, l'interruption de la partie pendant qu'une action scénaristique (moment où vous ne pouvez pas exécuter de commande) est en cours peut entraîner"
   "La corruption de votre sauvegarde de jeu. Afin d'éviter cela, attendez que vous ayez repris le contrôle de l'invite de commandes avant de quitter le jeu."
   "\nPour plus d'informations, consultez la partie ${bold:Comment restaurer sa partie après un Game Over}"
-else if(menu is 3)
+else if(answer is 3)
   "\n${f_grey,italic:=== Comment restaurer sa partie après un Game Over ===}\n"
   "Après avoir un message de ${f_red,bold:Game Over} affiché à l'écran, suivez les instructions pour réinitialiser votre partie. Le jeu va recommencer depuis le début."
   "Dès que vous avez la main sur l'invite de commandes, tapez la commande <${cyan:save}> et choisissez l'option numéro ${bold:2}."
   "Choisissez l'une des sauvegardes disponibles et entrez son numéro pour la restaurer. Votre partie sera alors rétablie."
   "Notez que des copies de votre sauvegarde sont régulièrement effectuées, à des points-clés du jeu, afin de ne pas vous faire perdre trop de progression."
-else if(menu is 4)
+else if(answer is 4)
   "\n${f_grey,italic:=== Serveurs et réseaux ===}\n"
   "Les ${cyan:serveurs} sont des ordinateurs qui peuvent se connecter à un ou plusieurs ${cyan:réseaux}."
   "Un réseau est comparable au fonctionnement d'internet. Le principal réseau d'${haskier} est le réseau ${hypernet}."
   "Géré par une grande entreprise de renommée internationale, ce réseau permet l'échange de certains fichiers entre tous les serveurs connectés à ce réseau."
   "${bold:NOTE :} Votre ordinateur personnel est également un serveur."
-else if(menu is 5)
+else if(answer is 5)
   "Votre ordinateur peut se connecter à une boutique d'applications en ligne nommée ${f_cyan,italic:Century Store}."
   "Elle vous permet de télécharger de nouvelles applications qui augmenteront les capacités de votre machine."
   "Pour y accéder, tapez la commande <${cyan:store}> et suivez les instructions qui s'affichent à l'écran."
   "${bold:NOTE :} Vous n'aurez jamais à payer avec de l'argent réel dans le jeu."
-else if(menu is 6)
+else if(answer is 6)
   "Certains serveurs du jeu partagent des fichiers avec tous les ordinateurs connectés au réseau ${hypernet}."
   "Vous pouvez accéder à ces fichiers sans saisir ni login ni mot de passe, car ils sont publics."
   "Utilisez la commande <${cyan:icefox}> pour lire les fichiers partagés entre les serveurs."
-else if(menu is 7)
+else if(answer is 7)
   "Le stockage local de votre ordinateur va être testé."
   "Il est possible que le ventilateur de votre PC s'active et que celui-ci se mette à faire beaucoup de bruit durant quelques instants"
   "Cela est parfaitement normal. Si, au bout d'une minute, le test n'est pas terminé, quittez le jeu (en fermant l'onglet par exemple)"
@@ -104,7 +104,7 @@ else if(menu is 7)
   endif
 endif x7
 
-if(menu isnt 8)
+if(answer isnt 8)
   display(" ")
   sleep("Appuyez sur une touche")
   repeat()

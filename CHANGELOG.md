@@ -1,3 +1,28 @@
+Su 03-04-2016
+Haskier b-0.5 (revision 2)
+- Added `didactic` command to get informations on game itself
+- Added `send_mail` HSF command
+- Added `aes` command for files encryption, including random key generation
+- Added `tips` and `history` commands
+- Added commands history
+
+*** === Scenario === ***
+- Added Mission 01
+- Added name choice at game's beginning
+
+*** === Misc === ***
+- VAMPP now permits to choose the deliver's root directory (default: /webroot) : -r|--root argument
+- Fixed a bug with choice() and confirm() : The prompt was recovered after 2 wrong input values
+- Full support of startup scripts (/user/init.hss)
+- Prevent user from uninstalling native apps (didactic, ssh-hack)
+- Improved commands history recall using up and down arrows
+
+*** === Bug fixes === ***
+- Fixed (a lot of) bugs with Package Manager that didn't work due to new store's server
+- When save is loaded, player is redirected to his last CWD, not user's home directory
+- There was some troubles with "Shift + &" combinaison which was not displaying "1" but "&"
+- Save's backup weren't done because of new label's format
+
 Fr 01-04-2016
 Haskier b-0.4
 - Added `mailbox` application (`mail-cli` command) and its relay server

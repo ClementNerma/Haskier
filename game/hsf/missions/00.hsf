@@ -10,7 +10,7 @@ todo('open-communication-port');
 "Veuillez désactiver le pare-feu\nPour plus d'informations, tapez <${cyan:help firewall}>"
 todo('disable-firewall');
 
-: TALKING => Premier dialogue avec K [checkpoint]
+: 00 TALKING => Premier dialogue avec K [checkpoint]
 "Veuillez patienter..."
 "Réception de la communication"
 incoming("???");
@@ -41,7 +41,7 @@ taken("K", 10000)
 incomingEnd();
 todo('open-communication-port');
 
-: READY_FOR_TEST => Prêt pour le test [checkpoint]
+: 00 READY_FOR_TEST => Prêt pour le test [checkpoint]
 incoming("K");
 "Voici l'épreuve"
 "Vous devez, à l'aide des outils dont vous disposez sur votre ordinateur, réussir à récupérer le code à ${bold:4 chiffres} qui se trouve sur notre serveur de test."
@@ -59,7 +59,7 @@ sleep(1000);
 
 todo('open-communication-port');
 
-: FOUND_TEST_CODE
+: 00 FOUND_TEST_CODE
 incoming("K")
 "Quel est le code que vous avez trouvé ?"
 code = question()
@@ -78,7 +78,7 @@ endif
 incomingEnd()
 todo('open-communication-port');
 
-: WRITED_TEST_FILE
+: 00 WRITED_TEST_FILE
 incoming("K");
 "Voyons voir..."
 "Je me connecte au serveur..."
@@ -120,4 +120,51 @@ incomingEnd();
 
 wait_clock('+m 10');
 
-: TALKING2 => Après vérification de K
+: 00 TALKING2 => Après vérification de K
+incoming("K")
+"Après vérification, nous sommes prêt à vous faire entrer dans l'organisation"
+"Cependant, pour des raisons de sécurité, nous ne vous laisserons pas directement accès à nos serveurs de données"
+"Vous aurez néanmoins accès à un serveur en ligne, pour mener les opérations que nous vous confierons"
+"Cela vous convient-il ?"
+
+choice("Parfaitement", "Pas du tout")
+
+if(answer is 2)
+  "Quel problème cela vous pose-t-il ?"
+
+  choice("Je veux pouvoir accéder à vos serveurs dès maintenant", "Rien du tout")
+
+  if(answer is 1)
+    "Je suis désolé, mais je ne peux vous autoriser à y accéder tant que nous ne pouvons être sûr de pouvoir vous faire confiance"
+  endif
+endif
+
+"Afin de voir comment fonctionne notre organisation, vous allez rencontrer un autre membre qui vous confiera une mission"
+"Il vous contactera d'ici 3 heures. Cela vous convient-il ?"
+
+choice("Je préfèrerais un peu plus tôt", "Pas de problème", "Peut-on repousser l'entrevue à demain ?")
+
+if(answer is 1)
+  "Plus tôt, dites-vous ? Très bien."
+  "Je vais vérifier que cela ne lui pose pas de problème. Attendez un peu."
+  taken("K", 5000)
+  "Il est d'accord. Nous reprendrons contact avec vous d'ici 1 heure."
+  "À tout à l'heure !"
+  tmp = "+h 1"
+else if(answer is 2)
+  "Parfait. À tout à l'heure !"
+  tmp = "+h 3"
+else
+  "Très bien, dans ce cas nous reprendrons contact avec vous d'ici demain."
+  tmp = "+d 1"
+endif x3
+incomingEnd()
+
+" "
+"${b_white,f_black: Aide } En attendant la rencontre, vous pouvez consulter le dictionnaire de jeu"
+"${b_white,f_black: Aide } Pour ce faire, tapez la commande <${cyan:didactic}>"
+"${b_white,f_black: Aide } Cette commande n'est disponible que sur votre serveur et vous permettra de comprendre certaines notions de jeu"
+"${b_white,f_black: Aide } Nous vous conseillons de la lire pour bien comprendre la suite du jeu."
+" "
+
+wait_clock(scope.tmp)

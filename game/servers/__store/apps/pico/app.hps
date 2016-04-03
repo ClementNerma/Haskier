@@ -104,7 +104,7 @@ register('pico', {
                 pico.hide();
                 term.focus();
 
-                ignoreKeys = false;
+                //ignoreKeys = false;
 
                 confirm(tr('Do you want to save changes ?'), function(ans) {
                   if(!ans)
@@ -116,7 +116,7 @@ register('pico', {
                     else
                       resolver();
                   } else {
-                    ignoreKeys = false;
+                    //ignoreKeys = false;
 
                     question(tr('Please input the file path') + ' [' + tmp_file + '] :', function(ans) {
                       if(ans && !server.writeFile(ans, getAllText()))

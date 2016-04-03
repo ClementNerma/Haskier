@@ -1,4 +1,4 @@
 .logs/*
-js/jquery.terminal.js
-js/jquery.micro.js
-js/jquery-2.2.1.js
+js/lib/jquery.terminal.js
+js/lib/jquery-2.2.1.js
+js/lib/aes.js

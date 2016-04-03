@@ -5,7 +5,7 @@
     response.headers.code = 400;
   else {
     if(name.indexOf('@') !== -1) {
-      if(name.substr(name.indexOf('@') + 1) === 'terno.fr')
+      if(name.substr(name.indexOf('@') + 1) === 'mailbox.net')
         name = name.substr(0, name.indexOf('@'));
       else {
         response.content = 'false';

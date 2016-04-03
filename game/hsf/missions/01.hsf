@@ -1,0 +1,239 @@
+: MISSION_01 => Rencontre avec Victor [checkpoint]
+
+// Take care of the next variable on dialogs !
+victorMad = 0
+
+incoming("???")
+"Bonjour ${name} !"
+"Désolé d'arriver si brusquement, mais je n'ai pas eu votre adresse e-mail."
+"Enfin bref, quoi qu'il en soit, me voici."
+
+choice("Qui êtes-vous ?")
+
+"Je m'appelle Victor, et je c'est moi qui vais vous présenter le fonctionnement de l'organisation."
+human_talking = "Victor"
+
+choice("Très bien.", "Je croyais que je devais avoir une mission ?")
+
+
+if(answer is 2)
+  "En fait, il semblerait que K se soit trompé sur la procédure"
+  "Enfin ce n'est pas bien grave"
+endif
+
+"Ne perdons pas de temps et commençons tout de suite, voulez-vous ?"
+"Ah ! Mais au fait ! Je ne connais même pas votre nom !"
+
+choice("Je m'appelle ${name}", "Je n'ai pas envie de le dire")
+
+if(answer is 1)
+  "Enchanté, ${name}."
+else
+  "Voyons ! Ce ne sont pas des manières !"
+  "Attendez que je consulte les données..."
+  taken("Victor", 5000)
+  "Ah ! J'y suis !"
+  "Vous vous nommez ${name}, c'est bien ça ?"
+  choice("C'est cela", "Non")
+
+  if(answer is 1)
+    "Très bien."
+    "Enchanté, ${name}."
+  else
+    "..."
+    "C'est ce qui est marqué sur ma fiche..."
+    "Donc je vais prendre ça comme argent comptant."
+    "Enchanté, ${name}."
+    victorMad = 1
+  endif
+endif
+
+"Nous allons pouvoir commencer."
+"Je vais vous présenter divers aspects de l'organisation ainsi que les outils à votre disposition"
+"Par quoi souhaitez-vous que je commence ?"
+
+: 01 MULTIDIAG
+choice("Parle-moi des serveurs", "Y a-t-il un réseau privé ici ?", "Quel est l'objectif des Anonymas ?", "Quels missions vont m'être assignées ?", "Suis-je anonyme ici ?", "${cyan:C'est bon.}")
+
+if(answer is 1)
+  "Ici, il y a pas mal de serveurs. Ils ont tous une tâche bien précise et certains ne sont même pas accessibles depuis l'extérieur."
+  "Il y en a même un qui a une adresse IP qui ne respecte pas la norme, ce qui fait qu'il est impossible de s'y connecter quand on ne peut pas y accéder"
+  "physiquement. Ne me demande pas comment ils ont fait, je n'en ai aucune idée."
+  "Enfin bref, toujours est-il qu'on ne manque pas de matos ici, que ça soit pour hacker d'autres serveurs à distance, pour faire nos tests et nos"
+  "bidouilles..."
+  "Pour l'instant, tu n'auras accès qu'à un serveur de base, qui est connecté à Hypernet mais qui ne dipose pas des protections de nos"
+  "meilleurs serveurs, bien sûr."
+  "Au fur et à mesure, si tu démontres qu'on peut te faire confiance, les mecs qui gèrent l'organisation t'accorderont plus de droits et d'accès."
+  " "
+  "Autre chose ?"
+else if(answer is 2)
+  "Oui, on possède un réseau privé. À vrai dire, y'en a même deux. Le premier est celui qu'on utilise tous pour communiquer entre nous, on peut y accéder"
+  "de l'extérieur uniquement avec un login et un mot de passe. On a mis plein de sécurités pour empêcher qu'on nous vole nos données."
+  "Le deuxième est utilisé uniquement par les dirigeants de l'organisation pour stocker des données confidentielles, qui pourraient nous attirer"
+  "pas mal d'ennuis. Et la plupart d'entre nous, moi compris, ne savons même pas ce qu'ils y stockent !"
+  "Toujours est-il qu'on n'y a pas accès comme ça, il faut leur demander pour accéder aux données."
+  " "
+  "Autre chose ?"
+else if(answer is 3)
+  "Notre objectif ? On n'en a pas vraiment. En fait, ceux qui sont ici sont là pour faire de la sécurité et du ${italic:hacking} avec tout de même"
+  "une protection si un truc se passe mal. La plupart du temps, on hacke des serveurs à distance pour voir s'ils sont sécurisés. On est plus des"
+  "${italic:White Hat}, on donne toujours la faille qu'on trouve au développeur pour qu'il puisse re-sécuriser. En soi, c'est illégal, mais puisqu'on"
+  "aide d'autres personnes c'est pas bien grave."
+  "On a déjà trouvé des centaines de failles et on n'a jamais eu de poursuites judiciaires. Enfin, la plupart du temps, on est payé pour avoir fait ça,"
+  "donc c'est tout bénéf' ! Si ça te fait peur, sache qu'on te forcera jamais à faire quelque chose d'illégal ici."
+  "Alors, rassuré ?"
+else if(answer is 4)
+  "Il y a deux possibilités :"
+  "Soit c'est un membre qui travaille avec toi. Dans ce cas il ne te confie pas une mission, mais il te propose de travailler avec lui sur un projet."
+  "Parfois, ça peut aller jusqu'à dix ou quinze personnes ! Et tu es libre d'accepter ou de refuser. Dans un premier temps, tu ne pourras pas proposer"
+  "de projet, seulement rejoindre ceux en cours."
+  "Soit ce sont les big boss qui t'en confient une et tu ne peux pas refuser, ou alors tu quittes le groupe. Ça n'arrive que très rarement,"
+  "genre 1 ou 2 fois par an."
+  "Ce sont des missions du style modifier un site illégal et mettre un message d'avertissement au proprio, ou bien tout simplement en détruire un,"
+  "ça dépend."
+  "Ça, c'est parfaitement illégal, mais si quelqu'un (genre le proprio) découvre que c'est toi qui a fait ça, c'est le dirigeant qui t'a confié la mission"
+  "qui va tout prendre."
+  "Tu es toujours couvert pour ce type de mission. S'ils font appel à toi, c'est qu'ils ont besoin de quelqu'un qui a des connaissances assez solides"
+  "pour faire sauter toutes les sécurités et parvenir à l'objectif fixé."
+  "Enfin, tu n'en auras pas avant longtemps, crois-moi. Ils n'en confient qu'aux vétérans."
+  " "
+  "Autre chose ?"
+else if(answer is 5)
+  "Tu es anonyme tant que tu le souhaite. Mais dès que tu participeras à un projet, tu ne le seras plus puisque tu bossera avec quelqu'un dessus."
+  "Et comme c'est le but même de l'organisation, en un sens tu n'es pas anonyme. Mais aux yeux des flics par exemple, tu es juste"
+  "un type qui hacke les serveurs."
+  "Si tu fait une connerie et qu'ils remontent quand même jusqu'à toi - je ne crois pas que ça soit déjà arrivé - tu prendras cher, c'est sûr."
+  "Par contre si tu avais bien fait ton boulot et qu'il s'agissait d'une mission qu'un des boss t'avait confié, c'est lui qui prend, pas toi."
+  "C'est toujours comme ça que ça fonctionne."
+  "Alors, heureux ?"
+endif x5
+
+if(answer isnt 6)
+  display(" ")
+  sleep("Appuyez sur une touche")
+  repeat()
+endif
+
+"Super !"
+"Bon, j'ai pas de mission \"test\" à te proposer pour l'instant, mais j'en aurais d'ici peu de temps"
+"Tu peux me passer ton adresse e-mail ? Je t'enverrais un mail lorsque ça sera prêt."
+
+display('${italic,b_blue,f_white:Système} Votre adresse e-mail actuelle est ${bold:shaun.frena&#64;mailbox.net}')
+choice("Donner la vraie adresse", "Donner une fausse adresse")
+
+if(answer is 1)
+  mail = "shaun.frena@mailbox.net"
+  "shaun.frena&#64;mailbox.net ?"
+else
+  mail = "herno.sela@mailbox.net"
+  "herno.sela&#64;mailbox.net ?"
+endif
+
+"C'est noté."
+"À plus !"
+incomingEnd()
+
+" "
+"${b_white,f_black: Aide } Vous pouvez vous connecter à votre adresse e-mail en utilisant la commande <${cyan:mail-cli}>"
+"${b_white,f_black: Aide } Votre adresse e-mail est : shaun.frena&#64;mailbox.net"
+"${b_white,f_black: Aide } Votre mot de passe   est : m@|lB0xM@st€P@ssw0rd"
+"${b_white,f_black: Aide } Vous devriez recevoir un mail d'ici les prochaines heures... Surveillez l'horloge (en haut à droite)"
+"${b_white,f_black: Aide } En attendant, vous pouvez utiliser la commande <${cyan:tips}> pour obtenir des astuces sur le jeu !"
+" "
+
+wait_clock('+h 3')
+send_mail(scope.mail, "victor.anno@imas.net", "Mission", "Re-bonjour,\nConnecte-toi au serveur ${bold:32.48.125.28}.\nLe nom d'utilisateur est ${bold:hax} et le mot de passe ${bold:hax$fSFd98SF0sF}\n\nÀ tout de suite !")
+todo(['command', 'serverName === "32.48.125.28" && serverUser === "hax"'])
+
+: 01 SERVER_CONNECTED
+todo('open-communication-port')
+incoming("Victor")
+"Re-bonjour, ${name}."
+"Content de voir que tu ne m'aie pas refilé une fausse adresse mail."
+"Ça m'est arrivé une fois, ça m'a bien énervé. Mais ça a dû être pire pour le type vu qu'il n'a jamais pu reprendre contact avec nous ^^"
+"Enfin bref."
+"Je vais voir un peu ce que tu sais faire en te mettant à l'épreuve."
+"Je vais te cuisiner un peu pour que tu... ${italic:Qu'est-ce qu'il y a ?}"
+"${italic:Non, non, il vient juste d'arriver. Je voulais lui faire passer le test et...}"
+"Ah ! Attends deux minutes, s'il te plaît"
+taken("Victor", 15000)
+"${italic:OK, OK.} Désolé pour l'attente !"
+"Donc apparemment K t'a déjà fait passer un test bien corsé pour voir si tu faisais l'affaire..."
+"Si tu es là c'est que tu dois être sacrément doué alors !"
+"C'est quoi ton secret ?"
+
+choice("J'ai un outil \"fait maison\" pour ce genre de choses", "Secret défense !")
+
+if(answer is 1)
+  "Ah ouais ? C'est super ça !"
+  "Et il doit être vachement puissant pour atteindre le deuxième serveur de test..."
+  "Enfin bref."
+else
+  "Comme tu veux."
+  victorMad = scope.victorMad + 1
+endif
+
+"Si tu as déjà été testé, c'est pas la peine que le refasse."
+"Tiens, j'ai une idée !"
+"Puisque tu es si doué, je vais te donner un serveur pas facile du tout."
+"Si tu arrives à y accéder sans que je te donne le login ou le mot de passe, chapeau !"
+"Je te donne juste l'adresse IP : ${bold:148.25.136.98}. Tu dois lire le fichier ${bold:conf-ex}."
+// Connect to distant server...
+todo(['command', 'serverName === "148.25.136.98" && serverUser === "das-ssh"'])
+// ... and come back !
+todo(['command', 'serverName === "32.48.125.28" && serverUser === "hax"'])
+// Hello !
+"Alors ?"
+"Qu'est-ce que tu as trouvé ?"
+choice("Un fichier illisible avec plein de chiffres", "Un message étrange")
+
+if(answer is 1)
+  "Ah ! Alors tu as bien réussi à y accéder !"
+  "Waouh ! T'as vraiment de super méthodes !"
+else
+  "C'était une sorte de fichier de configuration ?"
+
+  choice("C'est ça", "Pas du tout")
+
+  if(answer is 1)
+    "Tu as réussi à déchiffrer ça ?"
+    "Waouh ! Je suis vachement impressionné !"
+  else
+    "Ah, tu n'as pas bien dû le décoder..."
+  end
+endif
+
+"Attends... Tu as bien pensé à effacer les logs, n'est-ce pas ?"
+
+choice("Oui, bien sûr", "Les quoi ?")
+
+if(answer is 1)
+  "Tu es sûr, hein ? Parce que sinon on risque d'avoir de très gros ennuis !"
+
+  choice("Oui je te dis !", "J'ai un doute...")
+
+  if(answer is 1)
+    "Ouf. On l'a échappé belle."
+  else
+    "Alors retourne sur le serveur et efface les logs tout de suite !!"
+    "Je t'attend"
+    have_to_erase = true
+  endif
+else
+  "Attends... Tu ne sais pas ce qu'est un log ?"
+  "Bon, je faire simple."
+  "Un ${italic:log} est un fichier qui contient plein d'infos sur le serveur et ce qui a été fait dessus"
+  "En gros, dès que quelqu'un se connecte par exemple, c'est marqué dans le log."
+  "Si l'administrateur vérifie le log et se rend compte que tu t'es connecté, il peut remonter jusqu'à toi."
+  "Sur ce serveur ça devait un fichier du style 'quelque chose.log'."
+  "Retourne sur le serveur pour l'effacer si tu ne veut pas avoir de gros ennuis !"
+  have_to_erase = true
+endif
+
+"Bon, je te laisse là pour aujourd'hui. Je reprendrais contact avoir toi demain."
+"À plus !"
+incomingEnd()
+gs[01].checkLogErased();
+
+: 01 WAITING
+//time_at({days: clock.getDate() + 1);

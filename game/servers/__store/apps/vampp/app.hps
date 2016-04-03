@@ -11,11 +11,18 @@ register('vampp', {
       _       : 'port',
       regex   : RegexCollection.port,
       legend  : tr('Port to use. If omitted, use the port 80.')
+    },
+    {
+      short   : 'r',
+      long    : 'root',
+      legend  : tr('Serve root directory')
     }
   ],
-  callback : function(port) {
+  callback : function(port, root) {
     if(this.data.running)
       return display_error(tr('VAMPP server is already running'));
+
+    root = root || '/webroot';
 
     if(!tokenCatch('incoming', $TOKEN))
       return ;
@@ -23,8 +30,8 @@ register('vampp', {
     var catched = server.catch('incoming:' + (port || 80), function(request, response) {
       var vpc;
 
-      if(tokenRead('/webroot/.vpc', $TOKEN) && server.fileExists('/webroot/.vpc')) { // VPC = VAMPP access
-        vpc = server.readFile('/webroot/.vpc');
+      if(tokenRead(root + '/.vpc', $TOKEN) && server.fileExists(root + '/.vpc')) { // VPC = VAMPP access
+        vpc = server.readFile(root + '/.vpc');
 
         if(!vpc) {
           response.headers['code'] = 500;
@@ -57,7 +64,7 @@ register('vampp', {
       } else
         vpc = {}; // Simplify next conditions
 
-      var file   = '/webroot/' + server.normalize(request.url);
+      var file   = root + '/' + server.normalize(request.url);
 
       if(!tokenRead(file, $TOKEN)) {
         if(!vpc.forbidden) {

@@ -183,7 +183,7 @@ var _commands = {
       }
 
       // Display help on all commands
-      var cmds = Object.keys(commands), long = 0, cmd;
+      var cmds = Object.keys(commands).sort(), long = 0, cmd;
 
       for(var i = 0; i < cmds.length; i++)
         if(commands[cmds[i]].visible !== false)
@@ -251,8 +251,6 @@ var _commands = {
     callback : function(act, file, line, length, resolve) {
       if(!needsWrite(file, TOKEN))
         return ;
-
-      ignoreKeys = false;
 
       var i = -1, content = (server.fileExists(file) ? server.readFile(file).split('\n') : []);
       line = line || 0; length = length || 1;
@@ -512,8 +510,6 @@ var _commands = {
     arguments: [],
     async    : true,
     callback : function(resolve) {
-      ignoreKeys = false;
-
       choice([
         tr('Backup the current save'),
         tr('Restore a save backup'),
@@ -573,7 +569,7 @@ var _commands = {
                   else
                     name = '${cyan:' + name + '}';
 
-                  size = JSON.stringify(sav).length;
+                  size = localStorage.getItem(keys[i]).length;
                   sav.marker = sav.marker || '-';
                   _sm_saves.push('${green:' + fescape(date) + ' '.repeat(16 - date.length) + '} ' + fescape(sav.marker) + ' '.repeat(30 - sav.marker) + ' ${bold:' + size + '}' + ' '.repeat(7 - size.toString().length) + name);
                   _sm_saves_json.push(sav);
@@ -634,7 +630,7 @@ var _commands = {
 
           case 6:
             // Import all backups
-            ignoreKeys = true;
+            //ignoreKeys = true;
 
             var callback = function() {
               $('#smfileimport').click();
@@ -655,8 +651,6 @@ var _commands = {
 
                   try      { contents = JSON.parse(LZString.decompressFromUTF16(contents)); }
                   catch(e) { return resolve('${red:' + tr('Specified file is not a valid backup container') + '}'); }
-
-                  ignoreKeys = false;
 
                   display(tr('Do you want to clear the current storage ? This will erase all of your backups. Choose this option if the previous import failed.')),
                   question(tr('Clear storage ?'), function(erase) {
@@ -717,8 +711,6 @@ var _commands = {
     ],
     async   : true,
     callback: function(action, name, resolve) {
-      ignoreKeys = false;
-
       // Check if action name is valid
       if(!action.match(/^install|list|remove|update|restart$/))
         return resolve('${red:' + tr('Bad action specified') + '}');
@@ -726,7 +718,7 @@ var _commands = {
       // List all existing applications
       // NOTE : No permission is needed to list installed applications
       if(action === 'list')
-        return resolve(server.glob('/apps/*', ['only_folders', 'names_list', 'relative_path']).sort().join('\n'));
+        return resolve(server.glob('/apps/*', ['only_files', 'names_list', 'relative_path']).sort().join('\n'));
 
       if(!name || !name.match(/^[a-zA-Z0-9_\-]+$/))
         return resolve('${red:' + tr('Bad application\'s name specified') +'}');
@@ -734,11 +726,18 @@ var _commands = {
       /*if(!needsRead('/apps/' + name))
         return resolve();*/
 
-      var has = server.dirExists('/apps/' + name), err;
+      var has = server.fileExists('/apps/' + name), err;
 
       switch(action) {
         case 'remove':
+          // If app is a directory
+          if(server.dirExists('/apps/' + name)) {
+            // Then it's a system app
+            return resolve('${red:' + tr('Application "${name}" is a system application and cannot be uninstalled', [name]) + '}');
+          }
+
           if(!has) return resolve('${red:' + tr('Application "${name}" is not installed', [name]) + '}');
+
           confirm(tr('Do you really want to uninstall "${name}" ?', [name]), function(ans) {
             if(!ans)
               return resolve();
@@ -746,8 +745,8 @@ var _commands = {
             if(!needsWrite('/apps/' + name))
               return resolve();
 
-            if(err = server.removeTree('/apps/' + name))
-              resolve('${red: ' + tr('Failed to remove "${name}". Please try again. Error : ${err}', [name, tr(err)]) + '}');
+            if(!server.removeFile('/apps/' + name))
+              resolve('${red: ' + tr('Failed to remove "${name}". Please try again.', [name]) + '}');
             else {
               saveGame();
               confirm(tr('"${name}" has been successfully removed. You must reboot your server to make changes takes effect. Reboot now ?', [name]), function(reboot) {
@@ -774,7 +773,7 @@ var _commands = {
           var content = '', eq, barSize = 50;
           term.set_prompt('[' + ' '.repeat(barSize) + '] 0%');
 
-          ignoreKeys = true;
+          //ignoreKeys = true;
 
           server.download({
             url     : 'app.xms',
@@ -806,6 +805,8 @@ var _commands = {
                 display(tr('Extracting file ${i} of ${num}', [i + 1, files.length]));
                 server.writeFile('/apps/' + name + '/' + files[i], app[files[i]]);
               }*/
+
+              server.touchFile('/apps/' + name);
 
               display(tr('Starting application...'));
 
@@ -979,6 +980,38 @@ var _commands = {
       every(unit, function() {
         command(server.readFile(path));
       });
+    }
+  },
+
+  history: {
+    legend   : tr('Get commands history'),
+    arguments: [
+      {
+        _       : 'last',
+        legend  : tr('Number of entries to display. If omitted, will display all entries.'),
+        regex   : RegexCollection.PositiveInteger
+      },
+      {
+        long    : 'clear',
+        legend  : tr('Clear the history. Permit to make free space on the save.')
+      },
+      {
+        long    : 'size',
+        legend  : tr('Change maximum size of the history. Default: ${default}', [300]),
+        regex   : RegexCollection.PositiveInteger
+      }
+    ],
+    callback : function(last, clear, size) {
+      if(last)
+        display(fescape(haskierHistory.reverse().slice(0, last).join('\n')));
+      else
+        display(fescape(haskierHistory.join('\n')));
+
+      if(size)
+        save.data.max_history_size = size;
+
+      if(clear)
+        haskierHistory = [];
     }
   },
 

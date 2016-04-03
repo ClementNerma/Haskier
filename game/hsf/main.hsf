@@ -8,12 +8,23 @@ setInitialClock(Date.parse('03/07/2016 19:10:00'));
 // Set some constants
 FREEZE_UNTIL_TODO       = true ;
 ALLOW_TRANSLATION       = false;
-FREEZE_CLOCK_UNTIL_TODO = true ;
+//FREEZE_CLOCK_UNTIL_TODO = true ;
 CLOCK_SPEED_COEFFICIENT = 12  ;
 // Show the clock
 launchClock();
 // Restore the game's save
 restore()
+
+: NAME_CHOICE
+display("Vous avez la possibilité de choisir un nom")
+display("Votre nom par défaut est ${italic:Shaun}")
+display("Souhaitez-vous en changer ?")
+choice("Oui", "Non")
+
+if(answer is 1)
+  vars.name = question("Veuillez saisir votre nom :")
+  display("Enchanté, ${name} !")
+endif
 
 : TUTORIAL
 choice("Voir le tutoriel (recommandé si vous jouez pour la première fois à ${haskier})", "Ignorer le tutoriel")
@@ -29,6 +40,7 @@ endif
 
 : MISSIONS
 #include("missions/00.hsf")
+#include("missions/01.hsf")
 
 : GAME_WON
 gameWon();

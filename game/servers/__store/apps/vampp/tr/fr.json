@@ -1,6 +1,7 @@
 {
   "Make a web server to share files": "Crée un serveur web pour le partage de fichiers",
   "Port to use. If omitted, use the port 80.": "Numéro du port à utiliser. Si omis, utilise le port 80.",
+  "Serve root directory": "Dossier racine contenant les fichiers",
 
   "VAMPP server is already running": "Le serveur VAMPP est déjà en cours d'exécution",
   "Requested file was not found": "Le fichier demandé n'existe pas",

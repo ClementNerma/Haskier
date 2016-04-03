@@ -6,18 +6,19 @@ var ROOT_DIR, config = false, err, defaultConfig = {}, global_callback;
 function loadConfig() {
   if(!server.dirExists(ROOT_DIR)) {
     if(!tokenWrite(ROOT_DIR))
-      return ;
+      return false;
 
     if(!server.mkdir(ROOT_DIR))
-      return ;
+      return false;
   }
 
-  if(server.fileExists(ROOT_DIR + '/config.rc'))
-    config = server.readJSON(ROOT_DIR + '/config.rc');
-  else {
+  if(server.fileExists(ROOT_DIR + '/config.rc')) {
+    return (config = server.readJSON(ROOT_DIR + '/config.rc'));
+  } else {
     // If the write fail, that's not a problem because we put the default configuration here
     server.writeFile(ROOT_DIR + '/config.rc', defaultConfig);
     config = clone(defaultConfig);
+    return config;
   }
 }
 
@@ -49,11 +50,11 @@ register('mail-cli', {
       display(tr('You haven\'t configured any account yet'));
       display(tr('Please fill your identifiers now to use Mailbox'));
       display('');
-      ignoreKeys = false;
+      //ignoreKeys = false;
 
       // Input the email adress
       question(tr('Email    :'), function(email) {
-        term.set_prompt('Checking...'); ignoreKeys = true;
+        term.set_prompt('Checking...'); //ignoreKeys = true;
 
         // Ask the server : Does this adress exist ?
         req('mailbox.net/exists-adress', {adress: email}, function(content) {
@@ -61,7 +62,7 @@ register('mail-cli', {
           if(content !== 'true')
             return resolve('${red:' + tr('This email adress doen\'t exist.') + '}');
 
-          ignoreKeys = false;
+          //ignoreKeys = false;
           // Input the password
           question(tr('Password :'), function(pass) {
             _login(email, pass, resolve);
@@ -83,9 +84,10 @@ register('mail-cli', {
         for(var i = 0; i < boxes.length; i++)
           names.push(tr(content[boxes[i]]));
 
-        ignoreKeys = false;
+        //ignoreKeys = false;
         choice(names.concat('${cyan:' + tr('Cancel') + '}'), function(num, txt) {
-          ignoreKeys = true; term.set_prompt('');
+          //ignoreKeys = true;
+          term.set_prompt('');
 
           if(num === names.length + 1)
             return resolve();
@@ -107,9 +109,10 @@ register('mail-cli', {
                     + fescape(box[i].sender) + ' '.repeat(max - box[i].sender.length) + ' '
                     + fescape(box[i].subject) || '${italic,f_grey:' + tr('No subject') + '}');
 
-        ignoreKeys = false;
+        //ignoreKeys = false;
         choice(titles.concat('${cyan:' + tr('Back to home') + '}'), function(ans) {
-          ignoreKeys = true; term.set_prompt('');
+          //ignoreKeys = true;
+          term.set_prompt('');
 
           if(ans === titles.length + 1)
             return boxesMenu(g_menu);
@@ -188,7 +191,8 @@ register('mail-login', {
   * @param {function} callback
   */
 function _login(email, pass, callback) {
-  term.set_prompt('Checking...'); ignoreKeys = true;
+  //ignoreKeys = true;
+  term.set_prompt(tr('Checking...'));
 
   // Ask the server for getting account informations
   req('mailbox.net/login', {adress: email, password: pass}, function(content) {
@@ -243,6 +247,9 @@ function req(url, data, success, error, progress) {
   * @param {callback} [error] If omitted, will display an error and quit the program
   */
 function imap(data, success, error) {
+  if(!config || !config.account || !config.account.token)
+    throw new Error('Can\'t make IMAP request because no token was found');
+
   data.token = config.account.token;
 
   var eq, barSize = 50;
@@ -257,3 +264,6 @@ function imap(data, success, error) {
     term.set_prompt('[' + '='.repeat(eq = Math.floor(progress * barSize)) + ' '.repeat(barSize - eq) + '] ' + Math.floor(progress * 100) + '%');
   });
 }
+
+exports('imap', imap);
+exports('load_config', function() { return clone(loadConfig()); });

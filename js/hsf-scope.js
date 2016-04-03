@@ -134,6 +134,7 @@ var scope = {
 
     // If 'FREEZE_UNTIL_TODO' var is set to true, we make user able again to use terminal
     // ... because it was frozen
+
     if(game.getVar('FREEZE_UNTIL_TODO'))
       scope.leave(true);
 
@@ -154,6 +155,9 @@ var scope = {
       command(query.exec);
       query.exec = null;
     }
+
+    if(onShellReady)
+      command(onShellReady);
   },
 
   goto: function(label) {
@@ -196,7 +200,8 @@ var scope = {
   },
 
   gameOver: function() {
-    vars.gameOver = true;
+    vars.gameOver = true ;
+    ignoreKeys    = false;
 
     if(outputFilter) {
       report_bug('There is an output filter during the GO function');
@@ -226,23 +231,6 @@ var scope = {
         window.location.reload();
       }, 2000);
     };
-    /*keydownCallback = function(e) {
-        var key = e.keyCode;
-
-        if(
-          (key > 47  && key <  58 ) || // number keys
-          key == 32  || key == 13   || // spacebar & return key(s) (if you want to allow carriage returns)
-          (key > 64  && key <  91 ) || // letter keys
-          (key > 95  && key <  112) || // numpad keys
-          (key > 185 && key <  193) || // ;=,-./` (in order)
-          (key > 218 && key <  223)   // [\]' (in order)
-        ) {} else return true;
-
-        localStorage.setItem('haskier_before_gameover', localStorage.getItem('haskier'));
-        localStorage.removeItem('haskier');
-        window.location.reload();
-    };*/
-
   },
 
   incoming: function(name) {
@@ -302,5 +290,41 @@ var scope = {
       todo = [];
       go();
     } ,(date - clock) / (game.getVar('CLOCK_SPEED_COEFFICIENT') || 12) * (fastdev === false || !query['fast-clock']));
+  },
+
+  wait_at: function(moment) {
+    var time = timeDiff(moment);
+    scope.todo(time);
+
+    setTimeout(function() {
+      todo = [];
+      go();
+    }, time / (game.getVar('CLOCK_SPEED_COEFFICIENT') || 12) * (fastdev === false || !query['fast-clock']))
+  },
+
+  send_mail: function(adress, sender, subject, content) {
+    var s    = servers['65.32.48.22'], o = adress;
+    adress   = adress.replace(/@mailbox\.net$/, '');
+    var path = '/webroot/accounts/' + adress + '.account';
+
+    if(!s.fileExists(path)) {
+      console.warn('HSF script tried to send an email to adress ' + o + ', but adress was not found');
+      go();
+      return ;
+    }
+
+    var f = s.readJSON(path);
+
+    f.messages.push({
+      id     : (server.generateId() + server.generateId()).replace(/\-/g, ''),
+      sender : sender,
+      subject: subject,
+      content: content,
+      box    : 'inbox',
+      time   : clock.getTime()
+    });
+
+    s.writeFile(path, f);
+    go();
   }
 };

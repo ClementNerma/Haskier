@@ -1,0 +1,98 @@
+
+var messages = [
+  {
+    title  : 'Serveur',
+    content:
+      'Un ${bold:serveur} est un ordinateur qui, une fois connecté à un réseau, est capable de transmettre des fichiers sur le réseau.\n \
+       Il utilise généralement l\'application ${italic:vampp} pour partager des fichiers avec d\'autres ordinateurs.'
+  },
+  {
+    title  : 'Réseau',
+    content:
+      'Un ${bold:réseau} permet à plusieurs ordinateurs de communiquer entre eux. Ainsi, deux ordinateurs connectés au réseau ${hypernet}\n \
+       Pourront échanger des données. Il existe de nombreux réseaux, dont la plupart sont privés.\n\n \
+       Un ${bold:réseau public} est accessible à n\'importe quel ordinateur.\nExemple : Le réseau ${hypernet} est un réseau public\n\n \
+       Un ${bold:réseau privé} n\'est accessible qu\'à certains ordinateurs.\nExemple : Le réseau des ${italic:Anonymas} est un réseau privé car tout le monde ne peut pas s\'y connecter'
+  },
+  {
+    title  : 'Application',
+    content:
+      'Une ${bold:application} est un ensemble de fichiers permettant d\'effectuer un certains nombre de tâches.\n \
+       Elles sont propres à chaque serveur. Même si l\'application ${italic:pico} est présente sur votre serveur, elle ne le sera pas forcément sur un autre.\n \
+       La plupart du temps, elles ajoutent une ou plusieurs commandes. ${italic:Pico} et ${italic:SSH} rajoutent des commandes du même nom, par exemple.\n \
+       Certaines applications sont payantes. Vous ne pourrez les débloquer qu\'à certaines conditions.\n \
+       ${bold:NOTE :} Vous n\'aurez ${underline:jamais} à payer avec de l\'argent réel.'
+  },
+  {
+    title  : 'Script shell',
+    content:
+      'Un ${bold:script shell} est un fichier portant l\'extension ${purple:.hss} (mon-script${purple.hss} par exemple).\n \
+       Ils contiennent des commandes shell, c\'est-à-dire les commandes que vous utilisez au sein du terminal. Par exemple, un script peut contenir :\n\n \
+       echo Bonjour !\n \
+       echo Je vais lancer votre boîte mail dans 5 secondes\n \
+       sleep 5000\n \
+       mail-cli\n\n \
+       Vous pouvez les lancer de deux manières :\n \
+       ${bold:-} Soit avec la commande ${bold:shell} (tapez <${cyan:help shell}>) pour plus d\'informations\n \
+       ${bold:-} Soit en saisissant leur nom (sans extension) dans le terminal si vous vous trouvez dans le dossier qui les contient'
+  },
+  {
+    title  : 'Black/Grey/White Hat',
+    content:
+      'Lorsqu\'une personne trouve une faille de sécurité dans un logiciel, un serveur ou un site web, par exemple, elle a le choix entre :\n \
+       ${bold:-} Contacter le développeur ou l\'administrateur par mail (ou équivalent) et l\'avertir qu\'il y a une faille dans son site par exemple.\n \
+       ${bold:>} C\'est un ${bold:White Hat}. Les grandes entreprises les récompensent pour leur travail, et ce jusqu\'à plusieurs dizaines de milliers d\'euros !\n \
+       ${bold:-} Publier la faille sur un forum, par exemple. Le développeur pourra voir le problème, mais les personnes mal intentionnées également.\n \
+       ${bold:>} C\'est un ${bold:Grey Hat}. Il risque des poursuites judiciaires pour avoir publié l\'information.\n \
+       ${bold:-} Revendre la faille à une entreprise qui va l\'utiliser. On ne sait pas ce qu\'elle va en faire. Généralement, ce type de clients paye grassement pour ces failles.\n \
+       ${bold:>} C\'est un ${bold:Black Hat}. Il risque des poursuites judiciaires et de lourdes sanctions pour avoir fait cela.'
+  }
+];
+
+var prepare = [], j, split;
+
+for(var i = 0; i < messages.length; i++) {
+  prepare.push(messages[i].title);
+
+  split = messages[i].content.split('\n');
+
+  for(j = 0; j < split.length; j++)
+    split[j] = split[j].trim();
+
+  messages[i].content = split.join('\n');
+}
+
+register('didactic', {
+  legend   : 'Dictionnaire de jeu',
+  arguments: [],
+  async    : true,
+  callback : function(resolve) {
+    function home() {
+      choice(prepare.concat('${cyan:Quitter}'), function(ans, title) {
+        if(ans === prepare.length + 1)
+          return resolve();
+
+        display(' ');
+        display('${italic,f_grey:=== ' + title + ' ===}');
+        display(' ');
+        display(messages[ans - 1].content);
+        display(' ');
+        display(' ');
+
+        ignoreKeys = false;
+        keydownCallback = function(e) {
+          if(e.keyCode === 13) {
+            term.clear();
+            home();
+          } else
+            return RESTORE_KEYDOWN_CALLBACK;
+        };
+
+        dontRecoverPrompt = true;
+        term.set_prompt(format('${italic:Appuyez sur Entrée pour continuer...}'));
+      });
+    }
+
+    home();
+  }
+});

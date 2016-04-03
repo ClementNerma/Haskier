@@ -35,8 +35,8 @@ register('ssh-hack', {
 
         setTimeout(function() {
           display('=== Identifiant ===');
-          display('Utilisateur  : guest');
-          display('Mot de passe : ' + sys.users.guest.password);
+          display('Utilisateur  : ' + (sys.users['das-ssh'] ? 'das-ssh' : 'guest'));
+          display('Mot de passe : ' + (sys.users['das-ssh'] || sys.users.guest).password);
           resolve('======= Fin =======');
         }, 3000 * (!fastdev));
       }, 4000 * (!fastdev));

@@ -356,9 +356,11 @@ function question(message, callback, dontSpace) {
   // Update the prompt with the question
   term.set_prompt(format(message || '?') + (dontSpace ? '' : ' '));
   // Make callback catch the input instead of treating it as a command
-  catchCommand = callback;
+  catchCommand = function() { ignoreKeys = true; callback.apply(window, arguments); };
   // We don't want prompt to be recovered
   dontRecoverPrompt = true;
+  // User must have access to prompt
+  ignoreKeys = false;
 }
 
 /**
@@ -367,10 +369,11 @@ function question(message, callback, dontSpace) {
   * @param {function} callback
   */
 function choice(args, callback) {
+  var digits = number_digits(args.length);
 
   for(var i = 0; i < args.length; i++)
     //display(' [' + (i + 1) + '] ' + args[i]);
-    display('${bold:' + (i + 1) + ' : }' + args[i]);
+    display('${bold:' + (i + 1) + ' '.repeat(digits - number_digits(i + 1)) + ' : }' + args[i]);
 
   //term.set_prompt('[1-' + args.length + '] ? ');
   display('');
@@ -378,20 +381,29 @@ function choice(args, callback) {
 
   catchCommand = function(ans) {
     if(Number.isNaN(ans = parseInt(ans))) {
+      // We don't want prompt to be recovered
+      dontRecoverPrompt = true;
+
       display_error(tr('Answer must be a number'));
       return RESTORE_COMMAND_CALLBACK;
     }
 
     if(ans < 1 || Math.floor(ans) !== ans || ans > args.length) {
+      // We don't want prompt to be recovered
+      dontRecoverPrompt = true;
+
       display_error(tr('Bad answer'));
       return RESTORE_COMMAND_CALLBACK;
     }
 
+    ignoreKeys = true;
     callback(ans, args[ans - 1]);
   };
 
   // We don't want prompt to be recovered
-  dontRecoverPrompt = true
+  dontRecoverPrompt = true;
+  // User must have access to prompt
+  ignoreKeys = false;
 }
 
 /**
@@ -407,15 +419,21 @@ function confirm(message, callback) {
     ans = ans.toLocaleLowerCase();
 
     if(ans !== yes_key && ans !== no_key) {
+      // We don't want prompt to be recovered
+      dontRecoverPrompt = true;
+
       display_error(tr('Please type `${yes_key}` or `${no_key}`', [yes_key, no_key]));
       return RESTORE_COMMAND_CALLBACK;
     }
 
+    ignoreKeys = true;
     callback(ans === yes_key);
   };
 
   // We don't want prompt to be recovered
-  dontRecoverPrompt = true
+  dontRecoverPrompt = true;
+  // User must have access to prompt
+  ignoreKeys = false;
 }
 
 /**
@@ -486,6 +504,15 @@ function ucfirst(str) {
   */
 function lcfirst(str) {
   return str.substr(0, 1).toLocaleLowerCase() + str.substr(1);
+}
+
+/**
+  * Get number of digits of a number (ex: 128 -> 3; 45 -> 2; 1475 -> 4)
+  * @param {number} n
+  * @return {number}
+  */
+function number_digits(n) {
+  return Math.floor(Math.log10(!n ? 1 : n)) + 1;
 }
 
 /**

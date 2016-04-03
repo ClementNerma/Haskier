@@ -143,7 +143,7 @@
   "Do you really want to uninstall \"${name}\" ?": "Voulez-vous vraiment désinstaller l'application \"${name}\" ?",
   "Application \"${name}\" is not installed": "L'application \"${name}\" n'est pas installée",
   "Application \"${name}\" is already installed": "L'application \"${name}\" est déjà installée",
-  "Failed to remove \"${name}\". Please try again. Error : ${err}": "Impossible de supprimer \"${name}\". Veuillez réessayer. Erreur : ${err}",
+  "Failed to remove \"${name}\". Please try again.": "Impossible de supprimer \"${name}\". Veuillez réessayer. Erreur : ${err}",
   "\"${name}\" has been successfully removed. You must reboot your server to make changes takes effect. Reboot now ?": "\"${name}\" a été correctement désinstallé. Vous devez redémarrer votre serveur pour que les changements prennent effet. Redémarrer maintenant ?",
   "Application \"${name}\" was not found on the store": "L'application \"${name}\" n'a pas été trouvée dans le magasin d'applications",
   "Failed to download \"${name}\" : Server error": "Le téléchargement de \"${name}\" a échoué : Erreur du serveur",
@@ -154,6 +154,7 @@
   "Starting application...": "Lancement de l'application...",
   "Restarting application...": "Redémarrage de l'application...",
   "Done.": "Fait.",
+  "Application \"${name}\" is a system application and cannot be uninstalled": "L'application \"${name}\" est une application système et ne peut pas être désinstallée",
 
   "y-n": "o-n",
   "Your choice [1-${end}] ?": "Votre choix [1-${end}] ?",

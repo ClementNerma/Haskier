@@ -13,6 +13,7 @@
   "Command-line logger requires an email adress": "L'outil de connexion requiert une adresse email",
   "Command-line logger requires a password": "L'outil de connexion requiert un mot de passe",
 
+  "Checking...": "Vérification...",
   "Wrong credentials, server refused login. Please try again.": "Identifiants invalides, le serveur a refusé la connexion. Veuillez réessayer.",
   "Failed to write configuration file. Please try again.": "Échec durant l'écriture du fichier de configuration. Veuillez réessayer.",
   "You've been successfully logged in.\nWelcome, ${firstName} ${lastName} !": "Vous avez été connecté avec succès.\nBienvenue, ${firstName} ${lastName} !",

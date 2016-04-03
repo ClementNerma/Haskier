@@ -1,0 +1,18 @@
+<%
+  var name = request.data.name;
+
+  if(!name)
+    response.headers.code = 404;
+  else if(!name.match(/^([a-zA-Z0-9_\-]+)$/))
+    response.headers.code = 400;
+  else if(!server.dirExists('/apps/' + name))
+    response.headers.code = 404;
+  else {
+    var exp = server.exportFolder('/apps/' + name);
+
+    if(typeof exp !== 'object')
+      response.headers.code = 500;
+    else
+      echo(JSON.stringify(exp.folder));
+  }
+%>

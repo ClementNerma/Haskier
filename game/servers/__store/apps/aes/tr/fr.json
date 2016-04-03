@@ -1,0 +1,18 @@
+{
+  "Crypt and decrypt files": "Crypter et décrypter des fichiers",
+  "Input file": "Fichier d'entrée",
+  "Output file": "Fichier de sortie",
+  "Encryption key. If omitted, will generate a random 256-bytes key.": "Clé de cryptage. Si omis, une clé 256 bits sera générée.",
+  "What action to do": "Action à faire",
+  "Bad action specified": "Action invalide",
+  "A key is needed for decryption": "La clé est requise pour le décryptage",
+  "Bad key was specified": "La clé spécifiée est invalide",
+  "Input file was not found": "Le fichier d'entrée n'existe pas",
+  "Failed to read input file": "Échec durant la lecture du fichier d'entrée",
+  "Encryption has failed": "Le cryptage a échoué",
+  "Decryption has failed": "Le décryptage a échoué",
+  "Failed to write output file": "Échec durant l'écriture du fichier de sortie",
+  "Randomly generated key : ${key}": "Clé générée aléatoirement : ${key}",
+  "Encrypted successfully.": "Le cryptage s'est fini correctement.",
+  "Decrypted successfully.": "Le décryptage s'est fini correctement."
+}

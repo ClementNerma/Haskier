@@ -4,7 +4,8 @@ var hidden = $('#terminal, #clock').hide(),
   dontRecoverPrompt = false, hsf_conds = [], todo = [], justRestored = false, justRestoredLabel = false,
   ignoreKeys = false, gameStarted = false, clock, clockInterval, clockMove, cmd_out = [], buff_out = [],
   redirection = false, query = (function(query) {var result = {};query.split('&').forEach(function(part) {var item = part.split("=");result[item[0]] = decodeURIComponent(item[1]);});return result;})(location.search.substr(1)),
-  fastMode = !!query.fastmode, fastdev = (query.fastmode === atob('ZGV2ZWxvcHBlci1oYXg=')), CompiledRegExp = {}, whenLogged = []
+  fastMode = !!query.fastmode, fastdev = (query.fastmode === atob('ZGV2ZWxvcHBlci1oYXg=')), CompiledRegExp = {}, whenLogged = [],
+  onShellReady, modules = {}, haskierHistory = [], historyRecall;
 /* FastDev query parameters :
  * label         Go to a HSF label when scope.restore() is called
  * exec          Run a shell command when scope.todo() is called
@@ -160,7 +161,7 @@ function ready() {
       if(!startApp(apps[j], names[i]))
         console.error('Failed to start application ' + apps[j] + ' from server ' + names[i]);
 
-    if(server.fileExists('/user/init.hss'))
+    if(server.fileExists('/user/init.hss') && names[i] !== (save.logged && save.logged.length ? save.logged[save.logged.length - 1] : '__local'))
       command(server.readFile('/user/init.hss'));
 
     console.log('Starting up server ' + (i + 1) + '/' + names.length + ' (' + (Date.now() - d) + ' ms)');
@@ -234,6 +235,9 @@ function ready() {
   if(fastdev && query['clear-console'])
     console.clear();
 
+  if(server.fileExists('/user/init.hss'))
+    onShellReady = server.readFile('/user/init.hss');
+
   term.focus();
   go();
 }
@@ -249,10 +253,8 @@ function startApp(app, serverName, returnError) {
   var _server = serverName ? servers[serverName] : server;
   var local   = _server.dirExists('/apps/' + app);
 
-  console.warn(serverName + ' '.repeat(16 - serverName.length) + app);
-
   try {
-    (new Function(['server', 'register', 'load_translation', 'exec', 'getcmd', 'include', 'whenLogged', '$TOKEN'], (local ? server : servers.__store).readFile('/apps/' + app + '/app.hps'))).apply(window, [_server, function(name, command) {
+    (new Function(['server', 'register', 'load_translation', 'exec', 'getcmd', 'include', 'exports', 'whenLogged', '$TOKEN'], (local ? server : servers.__store).readFile('/apps/' + app + '/app.hps'))).apply(window, [_server, function(name, command) {
       if(typeof command.legend !== 'string' || !Array.isArray(command.arguments) || typeof command.callback !== 'function')
         fatal('Can\'t register invalid command "' + name + '"');
 
@@ -280,6 +282,24 @@ function startApp(app, serverName, returnError) {
       return serversCommands[serverName || window.serverName].hasOwnProperty(name) ? serversCommands[serverName || window.serverName][name] : false;
     }, function(file) {
       return (local ? server : servers.__store).readFile('/apps/' + app + '/' + file);
+    }, function(name, value) {
+      var sN = serverName || window.serverName;
+
+      if(!modules.hasOwnProperty(sN))
+        modules[sN] = {};
+
+      if(!modules[sN].hasOwnProperty(app))
+        modules[sN][app] = {};
+
+      if(typeof name !== 'object') {
+        // register one-value module
+        modules[sN][app][name] = value;
+      } else {
+        var keys = Object.keys(name);
+
+        for(var i = 0; i < keys.length; i++)
+          modules[sN][app][keys[i]] = name[keys[i]];
+      }
     }, function(callback) {
       whenLogged.push(callback);
     }, clone(TOKEN || TOKENS.system /* fix a bug. Is that causing an issue ? */)]);
@@ -333,6 +353,7 @@ function saveGame() {
       scope   : game.diffScope(),
       label   : game.label(),
       marker  : game.marker(),
+      history : haskierHistory,
       dsas    : didSomethingAfterSave
     })));
   }
@@ -1056,7 +1077,8 @@ function updateServer(name, user) {
   serverUser     = user;
   vars['user' ]  = user;
 
-  server.chdir(users[user].home);
+  if(gameStarted)
+    server.chdir(users[user].home);
 }
 
 /**
@@ -1106,47 +1128,15 @@ var blob_dw = (function() {
 }());
 
 /**
-  * Run a function from time to time
-  * @param {string} moment
-  * @param {function} callback
+  * Get a module
+  * @param {string} name
+  * @return {object}
   */
-function every(moment, callback) {
-  var tmp;
+function require(name) {
+  if(!modules.hasOwnProperty(serverName) || !modules[serverName].hasOwnProperty(name))
+    throw new Error('Module "' + name + '" was not found');
 
-  if(typeof moment === 'string') {
-    tmp = {};
-    tmp[moment + (moment.substr(moment.length - 1, 1) === 's' ? '' : 's')] = 1;
-    moment = tmp;
-  }
-
-  var d = new Date(0)
-    d.setMonth  ((moment.months || -1) + 1);
-    d.setDate   ((moment.days   || 0) + 1);
-    d.setHours  ((moment.hours  || 0) + 1);
-    d.setMinutes(moment.minutes || 0);
-    d.setSeconds(moment.seconds || 0);
-
-  // Interval to run the callback, in ms
-  var every = d.getTime();
-  var cc    = new Date(clock.getTime());
-
-  var list = ['months', 'days', 'hours', 'minutes', 'seconds'], keys = Object.keys(moment), passedNot;
-
-  for(var i = 0; i < list.length; i++) {
-    if(moment[list[i]])
-      passedNot = true;
-
-    if(moment[list[i]] || passedNot)
-      cc[(moment[list[i]] ? 'add' : 'set') + (list[i] === 'days' && !moment[list[i]] ? 'Date' : ucfirst(list[i]))]((moment[list[i]] || 0) + (list[i] === 'months' ? 1 : 0));
-  }
-
-  // Timeout before launching the callback
-  var start_in = cc - clock;
-
-  setTimeout(function() {
-    setInterval(callback, every / (game.getVar('CLOCK_SPEED_COEFFICIENT') || 12));
-    callback();
-  }, start_in / (game.getVar('CLOCK_SPEED_COEFFICIENT') || 12));
+  return modules[serverName][name];
 }
 
 var queue      = [];           // Commands' queue
@@ -1183,9 +1173,15 @@ var term = $('#terminal').terminal(function(cmd, term) {
         // We recover the catcher
         catchCommand = callback;
     }
-  } else
+  } else {
     // Else, we run the command
     command(cmd);
+
+    if(haskierHistory.length >= (save.data.max_history_size || 300))
+      haskierHistory = haskierHistory.reverse().slice(0, (save.data.max_history_size || 300) - 1).reverse();
+
+    haskierHistory.push(cmd);
+  }
 }, {
   greetings     : '',
   name          : 'haskier-terminal',
@@ -1218,15 +1214,40 @@ var term = $('#terminal').terminal(function(cmd, term) {
 
     // Exception for '&' which is deleted by jQuery.terminal for an unknown reason
     if(e.keyCode === 49) {
-      term.set_command(term.get_command() + '&');
+      term.set_command(term.get_command() + (e.shiftKey ? '1' : '&'));
       return false;
     }
+
+    // Up key : History recall
+    if(e.keyCode === 38) {
+      if(haskierHistory.length >= historyRecall) {
+        historyRecall += 1;
+        term.set_command(haskierHistory[haskierHistory.length - historyRecall]);
+      }
+
+      return false;
+    } else if(e.keyCode === 40) {
+      if(historyRecall > 0) {
+        historyRecall -= 1;
+
+        if(historyRecall)
+          term.set_command(haskierHistory[haskierHistory.length - historyRecall]);
+        else
+          term.set_command('');
+      }
+
+      return false;
+    } else
+      historyRecall = 0;
 
     var cmd = term.get_command(), split = cmd.split(' '), last = split[split.length - 1];
 
     if($('#autocomplete span').text().length) {
       if(e.keyCode === 27 || e.keyCode === 13)
         $('#autocomplete span').text('');
+    } else if(e.keyCode === 27) {
+      term.set_command('');
+      return false;
     }
 
     if(e.keyCode === 13 && cmd === 'clear') {
@@ -1256,7 +1277,7 @@ var term = $('#terminal').terminal(function(cmd, term) {
       names  = [];
 
       if(!exists)
-        error(tr('Failed to autocomplete arguments because command "${cmd}" was not found', [base]));
+        console.warn(tr('Failed to autocomplete arguments because command "${cmd}" was not found', [base]));
       else if((args = commands[base].arguments).length) {
         for(var i = 0; i < args.length; i++) {
           has = (split.indexOf('--' + args[i].long) !== -1 || split.indexOf('-' + args[i].short) !== -1);
@@ -1359,8 +1380,8 @@ if(!is_save) {
   vars = save.vars;
   // Fix a bug with jQuery.terminal plugin
   save.view.interpreters = term.export_view().interpreters;
-  // Import view...
-  //term.import_view(save.view);
+  // Import commands history
+  haskierHistory = save.history;
 }
 
 vars.scope  = scope;

@@ -1,0 +1,80 @@
+
+load_translation('tr/${lang}.json');
+
+register('aes', {
+  legend   : tr('Crypt and decrypt files'),
+  arguments: [
+    {
+      _       : 'do',
+      legend  : tr('What action to do') + ' ("encrypt" or "decrypt")',
+      required: true,
+      regex   : "encrypt|decrypt",
+      error   : tr('Bad action specified')
+    },
+    {
+      _       : 'input',
+      legend  : tr('Input file'),
+      required: true
+    },
+    {
+      _       : 'output',
+      legend  : tr('Output file'),
+      required: true
+    },
+    {
+      _       : 'key',
+      legend  : tr('Encryption key. If omitted, will generate a random 256-bytes key.')
+    }
+  ],
+  callback : function(wdo, input, output, key) {
+    // do is a reserved keyword, "wdo" is "What to DO"
+
+    if(!key) {
+      if(wdo === 'decrypt')
+        return display_error(tr('A key is needed for decryption'));
+
+      // This var will be defined in the function's scope even if the condition is false
+      var displayKey = true;
+      key = aes.genKey();
+    } else {
+      try      { key = aes.str2bytes(key); }
+      catch(e) { return display_error(tr('Bad key was specified')); }
+    }
+
+    if(!needsRead(input) || !needsWrite(input))
+      return ;
+
+    if(!server.fileExists(input))
+      return display_error(tr('Input file was not found'));
+
+    var content = server.readFile(input);
+
+    if(typeof content !== 'string')
+      return display_error(tr('Failed to read input file'));
+
+    var transformed;
+
+    if(wdo === 'encrypt') {
+      try      { transformed = aes.encrypt(content, key).join(';') }
+      catch(e) { return display_error(tr('Encryption has failed')); }
+    } else /* wdo === 'decrypt' */ {
+      content = content.split(';');
+
+      for(var i = 0; i < content.length; i++)
+        content[i] = parseInt(content[i]);
+
+      try      { transformed = aes.decrypt(content, key); }
+      catch(e) { return display_error(tr('Decryption has failed')); }
+    }
+
+    //console.log(wdo, transformed, content);
+
+    if(!server.writeFile(output, transformed))
+      return display_error(tr('Failed to write output file'));
+
+    if(displayKey)
+      display(tr('Randomly generated key : ${key}', [aes.bytes2str(key)]));
+
+    display(tr(wdo === 'encrypt' ? 'Encrypted successfully.' : 'Decrypted successfully.'));
+  }
+});

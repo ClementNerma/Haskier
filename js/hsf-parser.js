@@ -37,13 +37,13 @@ var HSF = (new (function() {
     for(var i = 0; i < code.length; i++) {
       line = code[i].trim();
       if(line.length && line.substr(0, 2) !== '//' && line.substr(0, 2) !== '/*') {
-        if(match = line.match(/^: *([a-zA-Z0-9_]+) *\[(.*)\]$/))
-          out.push({label: match[1], data: match[1]});
-        else if(match = line.match(/^: *([a-zA-Z0-9_]+) *(\-|=)> *(.*) *\[(.*)\]$/))
-          out.push({label: match[1], marker: match[3], data: match[4]});
-        else if(match = line.match(/^: *([a-zA-Z0-9_]+)$/))
+        if(match = line.match(/^: *((([0-9]+) |)[a-zA-Z0-9_]+) *\[(.*)\]$/))
+          out.push({label: match[1], data: match[2]});
+        else if(match = line.match(/^: *((([0-9]+) |)[a-zA-Z0-9_]+) *(\-|=)> *(.*) *\[(.*)\]$/)) {
+          out.push({label: match[1], marker: match[5], data: match[6]});
+        } else if(match = line.match(/^: *((([0-9]+) |)[a-zA-Z0-9_]+)$/))
           out.push({label: match[1]});
-        else if(match = line.match(/^: *([a-zA-Z0-9_]+) *(\-|=)> *(.*)$/))
+        else if(match = line.match(/^: *((([0-9]+) |)[a-zA-Z0-9_]+) *(\-|=)> *(.*)$/))
           out.push({label: match[1], marker: match[3]});
         else if(match = line.match(/^(else *|)if *\((.*)\)$/)) {
           if(match[1])
@@ -57,7 +57,7 @@ var HSF = (new (function() {
           for(j = 0; j < parseInt(match[1]); j++)
             out.push({state: 'endif'});
         } else {
-          if(match = line.match(/^(scope\.|)([a-zA-Z0-9_\[\]\'\"]+) *= *([a-zA-Z0-9_\.]+) *\((.*)\)([; ]*)$/)) {
+          if(match = line.match(/^(scope\.|vars\.|)([a-zA-Z0-9_\[\]\'\"]+) *= *([a-zA-Z0-9_\.]+) *\((.*)\)([; ]*)$/)) {
             out.push({js: match[3] + '(' + match[4] + ');'});
             out.push({js: (match[1] || 'scope.') + match[2] + '=scope.answer;', state: 'var-assign'});
           } else {
