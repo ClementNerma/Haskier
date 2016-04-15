@@ -1,0 +1,9 @@
+{
+    "name"   : "VAMPP",
+    "author" : "Romain Abeille",
+    "upload" : "20/03/2015",
+    "license": "CC-BY-NC-ND-4.0",
+    "version": "3.0",
+
+    "description": "Outil de mise en place de serveur internet"
+}

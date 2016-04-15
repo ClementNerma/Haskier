@@ -1,0 +1,8 @@
+{
+    "name"   : "SSH",
+    "author" : "Tarien Ylönen",
+    "upload" : "24/03/2015",
+    "license": "CC-BY-NC-ND-4.0",
+
+    "description": "Connect to distant server"
+}

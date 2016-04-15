@@ -13,7 +13,7 @@ var RegexCollection = {
   Integer        : '(\-|)([0-9]*)',
   PositiveInteger: '[1-9]([0-9]*)',
   Number         : '([0-9\.]+)',
-  Email          : '(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))',
+  Email          : '([a-zA-Z0-9\\-]+)\.([a-zA-Z0-9\\-]+)@([a-zA-Z0-9\\-]+)\.([a-zA-Z0-9\\-]+)',
   TimeName       : '(second|minute|hour|month)(s|)'
 };
 
@@ -178,7 +178,7 @@ var _commands = {
                     '}\n\t\t' + (arg.legend || '${f_grey,italic:' + tr('No description provided') + '}');
         }
 
-        display('Description\n===========\n\n\t' + commands[command].legend + '\n\nSynopsis\n=========\n\n\t' + command + syn + '\n\n' + (desc ? 'Parameters\n==========' + desc : '\n${italic:' + tr('This command does not accept any parameter') + '.}'));
+        display('Description\n===========\n\n\t' + commands[command].legend + '\n\nSynopsis\n=========\n\n\t' + command + syn + '\n\n' + (desc ? 'Parameters\n==========' + desc : '${italic:' + tr('This command does not accept any parameter') + '.}') + (!commands[command].examples ? '' : '\n\nExamples\n========\n\n    ' + commands[command].examples.join('\n    ') + '\n'));
         return ;
       }
 
@@ -226,7 +226,7 @@ var _commands = {
     arguments: [
       {
         _       : 'action',
-        legend  : tr('What you want to do'),
+        legend  : tr('What you want to do ("insert" or "update")'),
         required: true,
         regex   : "insert|update"
       },
@@ -247,6 +247,9 @@ var _commands = {
         legend  : tr('Number of lines to write'),
         regex   : RegexCollection.PositiveInteger
       }
+    ],
+    examples : [
+      '${cyan:edit} ${green:insert file.txt -l 2 -n 5}'
     ],
     callback : function(act, file, line, length, resolve) {
       if(!needsWrite(file, TOKEN))
@@ -463,7 +466,7 @@ var _commands = {
         return ;
 
       if(!server.mkdir(path))
-        displayErr(tr('Failed to make folder'));
+        display_error(tr('Failed to make folder'));
     }
   },
 
@@ -552,7 +555,7 @@ var _commands = {
 
             for(var i = 0; i < keys.length; i += 1) {
               if(keys[i].substr(0, backup_prefix.length) === backup_prefix) {
-                try { sav  = JSON.parse(LZString.decompressFromUTF16(localStorage.getItem(keys[i]))); corrupted = false; }
+                try { sav  = JSON.parse(reverse(LZString.decompressFromUTF16(localStorage.getItem(keys[i])))); corrupted = false; }
 
                 catch(e) {
                   _sm_saves.push('${red:????????? ' + keys[i].substr(backup_prefix.length) + ' &#91;' + tr('Corrupted') + '&#93;}');
@@ -586,7 +589,7 @@ var _commands = {
               if(!save)
                 return resolve('${red:' + tr('Unable to restore a corrupted backup') + '}');
 
-              localStorage.setItem('haskier', LZString.compressToUTF16(JSON.stringify(save)));
+              localStorage.setItem('haskier', LZString.compressToUTF16(reverse(JSON.stringify(save))));
 
               window.location.reload();
             });
@@ -624,7 +627,9 @@ var _commands = {
                 exp[names[i]] = LZString.decompressFromUTF16(localStorage.getItem(names[i]));
             }
 
-            blob_dw(LZString.compressToUTF16(JSON.stringify(exp)), 'haskier.bak');
+            //blob_dw(LZString.compressToUTF16(JSON.stringify(exp)), 'haskier.bak');
+              blob_dw(JSON.stringify(exp), 'haskier.bak');
+              blob_dw(JSON.stringify(exp, null, 4), 'haskier-expanded.bak');
             resolve();
             break;
 
@@ -778,7 +783,7 @@ var _commands = {
           server.download({
             url     : 'app.xms',
             data    : {name: name},
-            IP      : '__store',
+            IP      : ipalias.store,
             progress: function(progress, m, M, speed, time) {
               term.set_prompt('[' + '='.repeat(eq = Math.floor(progress * barSize)) + ' '.repeat(barSize - eq) + '] ' + Math.floor(progress * 100) + '% ' + time + ' (' + speed + ' b/s)');
             },
@@ -882,15 +887,12 @@ var _commands = {
     legend   : tr('Return to the previous SSH server'),
     arguments: [],
     callback : function() {
-      serverLogged.pop();
-      var target = serverLogged[serverLogged.length - 1];
-
-      if(!target) {
+      if(serverLogged.length <= 1) {
         display(tr('You\'re not connected to any SSH server anymore. You will be redirected to your home server.'));
-        queue.unshift(['ssh-home']);
+        command_now('ssh-home');
       } else {
-        updateServer(target[0], target[1]);
-        display(tr('Welcome back to ${IP}', [target[0]]));
+        back_ssh();
+        display(tr('Welcome back to ${IP}', [serverName]));
       }
     }
   },
@@ -899,8 +901,7 @@ var _commands = {
     legend   : tr('Return to your home SSH server'),
     arguments: [],
     callback : function() {
-      serverLogged = [];
-      updateServer('__local', 'Shaun');
+      home_ssh();
       display(tr('Welcome back to home, ${name} !'));
     }
   },

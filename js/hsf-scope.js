@@ -15,7 +15,7 @@ var scope = {
     term.clear(); go();
   },
 
-  question: function(msg) {
+  question: function(msg, dontSpace) {
     dontRecoverPrompt = true;
     question(game.getVar('ALLOW_TRANSLATION') ? tr(msg || '') : (msg || ''), function(answer) {
       // Question callback
@@ -23,7 +23,7 @@ var scope = {
       game.setVar('answer', answer);
       dontRecoverPrompt = null;
       go();
-    });
+    }, !!dontSpace);
   },
 
   choice: function() {
@@ -152,12 +152,45 @@ var scope = {
     } else justRestored = false;
 
     if(fastdev && query.exec) {
-      command(query.exec);
-      query.exec = null;
-    }
+      if(fastdev && query.javascript)
+        onQueueFinished = function() { window.eval(query.javascript); };
 
-    if(onShellReady)
+      simulateShellWrited(query.exec);
+      command(query.exec);
+
+      query.exec = null;
+    } else if(fastdev && query.javascript)
+      window.eval(query.javascript);
+
+    if(onShellReady) {
+      simulateShellWrited(onShellReady);
       command(onShellReady);
+
+      onQueueFinished = function() {
+        if(fastdev && query.javascript)
+          window.eval(query.javascript);
+
+        for(var i = 0; i < todo.length; i++) {
+          if(todo[i][0] === 'command' && window.eval(todo[i][1])) {
+            todo.splice(i, 1);
+            i--;
+          }
+        }
+
+        if(!todo.length)
+          go();
+      };
+    } else {
+      for(var i = 0; i < todo.length; i++) {
+        if(todo[i][0] === 'command' && window.eval(todo[i][1])) {
+          todo.splice(i, 1);
+          i--;
+        }
+      }
+
+      if(!todo.length)
+        go();
+    }
   },
 
   goto: function(label) {
@@ -196,7 +229,8 @@ var scope = {
   },
 
   gameWon: function() {
-    display('\n${cyan,italic:Vous avez terminé le jeu. Félicitations !}\n${cyan,italic:Notez que ceci était une version Alpha du jeu et que le scénario n\'est, à ce titre, pas terminé.}\n${cyan,italic:Je vous remercie d\'avoir joué à ce jeu. N\'hésitez pas à le commenter sur mon compte twitter (@ClementNerma) afin que je puisse l\'améliorer. Merci !}');
+    todo = ['unreachable'];
+    ignoreKeys = true;
   },
 
   gameOver: function() {
@@ -219,7 +253,7 @@ var scope = {
     catchCommand    = function(cmd) {
       if(cmd !== gostr) {
         display(tr('I told you to type ${f_red,bold:${str}}', {str: gostr}));
-        return true;
+        return RESTORE_COMMAND_CALLBACK;
       }
 
       term.pause();
@@ -243,17 +277,6 @@ var scope = {
     term.echo(format('${f_grey,italic:' + tr('=== Communication\'s end ===') + '}'));
     server.state('communication-opened', false);
     go();
-  },
-
-  download: function(ip, file) {
-    // Dependency !!! Try to remove it !
-    servers['127.32.47.53'].writeFile('/webroot/______', servers[ip].readFile(file));
-    exec('icefox master.net/______ -d ______', function() {
-      display('\nFichier : ${f_cyan,italic:' + file.split('/')[file.split('/').length - 1] + '}\n\n=================================\n${italic:' + /*fescape(*/server.readFile('______')/*)*/.split('\n').join('}\n${italic:') + '}\n=================================\n');
-      servers['127.32.47.53'].removeFile('/webroot/______');
-      server.removeFile('______');
-      go();
-    });
   },
 
   taken: function(name, time) {
@@ -303,7 +326,7 @@ var scope = {
   },
 
   send_mail: function(adress, sender, subject, content) {
-    var s    = servers['65.32.48.22'], o = adress;
+    var s    = aliases.mailbox, o = adress;
     adress   = adress.replace(/@mailbox\.net$/, '');
     var path = '/webroot/accounts/' + adress + '.account';
 

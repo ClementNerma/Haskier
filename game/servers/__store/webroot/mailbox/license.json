@@ -1,0 +1,9 @@
+{
+    "name"   : "Mailbox",
+    "author" : "Lemon",
+    "upload" : "01/01/2015",
+    "license": "CC-BY-NC-ND-4.0",
+    "version": "2.0",
+
+    "description": "Get and send e-mails in a second"
+}

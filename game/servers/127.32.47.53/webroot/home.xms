@@ -1,6 +1,3 @@
-Vous êtes sur la page d'accueil du réseau ${hypernet}.
+Bienvenue sur le réseau ${hypernet}.
 
-Voici une liste des services disponibles :
-
-/speed-test.xms Tester la vitesse de votre connection hypernet
-/about.xms      À propos du réseau
+/about : À propos de...

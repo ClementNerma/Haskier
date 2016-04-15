@@ -12,7 +12,7 @@ function report_bug(error, vars) {
   console.error(error); if(Object.keys(vars).length) console.error(vars);
 
   // Ask the user for reporting the bug
-  if(_confirm(tr('A bug has been detected. Would you like to report it ?\n\nDetails :\n${err}\n\n${vars}', [error, vars])))
+  //if(_confirm(tr('A bug has been detected. Would you like to report it ?\n\nDetails :\n${err}\n\n${vars}', [error, vars])))
     // Send the request to the server
     $.ajax({
       url   : 'com/bug-report.run',
@@ -23,11 +23,11 @@ function report_bug(error, vars) {
       },
       success: function() {
         console.log('A bug was reported just now.');
-        alert(tr('Bug has been reported. Thank you !'));
+        //alert(tr('Bug has been reported. Thank you !'));
       },
       error: function(req) {
         console.error('Failed to report bug to server\n' + req.responseText);
-        alert(tr('Failed to report bug to server ;('));
+        //alert(tr('Failed to report bug to server ;('));
       }
     });
 }
@@ -93,36 +93,50 @@ function fatal(message) {
 /**
   * Format variables calls in a string
   * @param {string} str
+  * @param {boolean} [removeInexistant] Remove all inexistant variables. Default: false
+  * @param {object} [vars] All variables. If omitted, will take `vars` as referer
   * @return {string}
   */
-function formatVars(text) {
-  return text.replace(/\${([a-zA-Z0-9_\.]+)}/g, function(match, val) {
-    val = val.split('.');
-
-    if(val.length === 1)
-      return vars.hasOwnProperty(val[0]) ? vars[val[0]] : match;
-
-    var d = vars;
-
-    for(var i = 0; i < val.length - 1; i++) {
-      if(typeof d[val[i]] !== 'object' || !d[val[i]])
-        return match;
-
-      d = d[val[i]];
-    }
-
-    return typeof d[val[i]] !== 'undefined' ? d[val[i]] : match;
+function formatVars(text, removeInexistant, vars) {
+  return text.replace(/\${([a-zA-Z0-9_\.\[\]"' ]+)}/g, function(match, val) {
+    try      { return math.eval(val.trim().replace(/'/g, '"'), vars || window.vars); }
+    catch(e) { return (removeInexistant ? '' : text); }
   });
+}
+
+/**
+  * Format all vars in an object. THIS WILL MODIFY THE SOURCE OBJECT !
+  * @param {object} source
+  * @param {object} [vars]
+  * @return {object} source
+  */
+function formatObjectVars(source, vars) {
+  // BUG TODO : Function is using global vars instead of argument
+  function recurse(o) {
+    var n = Object.keys(o), i;
+    for(i = 0; i < n.length; i++)
+      if(o[n[i]] && typeof o[n[i]] === 'object')
+        recurse(o[n[i]]);
+      else if(typeof o[n[i]] === 'string')
+        o[n[i]] = formatVars(o[n[i]], false, vars);
+  }
+
+  recurse(source);
+  return source;
 }
 
 /**
   * Format a text to display it into the terminal
   * @param {string} text
+  * @param {boolean} [remove] Remove all formatting. Default: false
   */
-function format(text) {
+function format(text, remove) {
   return formatVars(text)
     // Format all colors call 'My text ${red:My second text}'
     .replace(/\${([a-zA-Z0-9#_, ]+?):(.*?)}/g, function(match, style, content) {
+      if(remove)
+        return content;
+
       var guib = '', foreground = '', background = '', guibList = ['underline', 'strike', 'overline', 'italic', 'bold', 'glow'];
       style = style.replace(/ /g, '').split(',');
 
@@ -437,6 +451,20 @@ function confirm(message, callback) {
 }
 
 /**
+  * Pause while a key is pressed
+  * @param {function} callback
+  */
+function keyPause(callback) {
+  term.set_prompt('');
+  dontRecoverPrompt   = true    ;
+  ignoreKeys          = false   ;
+  keydownCallback     = function() {
+    dontRecoverPrompt = false;
+    callback();
+  };
+}
+
+/**
   * Espace string's formatting
   * @param {string} str
   * @return {string}
@@ -516,6 +544,15 @@ function number_digits(n) {
 }
 
 /**
+  * Replace all nonbreaking spaces by standard spaces in a string
+  * @param {string} str
+  * @return {string}
+  */
+function noBreakingSpace(str) {
+  return str.replace(/\xa0/g, ' ');
+}
+
+/**
   * Characters table
   * @type {Object}
   */
@@ -563,3 +600,8 @@ var chars = {
   122: 'f11',
   123: 'f12'
 };
+
+var keys = {};
+
+for(var _i in chars)
+  keys[chars[_i]] = parseInt(_i);

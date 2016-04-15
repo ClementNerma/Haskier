@@ -6,7 +6,7 @@ Alors que vous venez de rentrer dans une célèbre organisation de *hacking* apr
 
 Interface disponible en anglais et en français, jeu disponible en français.
 
-**NOTE :** Le jeu est encore en version Alpha et n'est donc, à ce titre, pas terminé. Merci de considérer que le jeu est encore en cours de développement !
+**NOTE :** Le jeu est en version Beta et n'est donc, à ce titre, pas terminé. Merci de considérer que le jeu est encore en cours de développement !
 
 # Clause de non-responsabilité
 
@@ -19,3 +19,16 @@ Merci de votre compréhension.
 
 Ce jeu est sous licence propriétaire [Creative Commons CC-BY-NC-ND-4.0 International](http://creativecommons.org/licenses/by-nc-nd/4.0/).
 À ce titre, toute modification ou utilisation commerciale doit faire l'objet d'une autorisation explicite de l'auteur (Clément Nerma). Toute reproduction, modification, ou utilisation commerciale est donc strictement interdite, sauf sur autorisation exceptionnelle.
+
+# Crédits
+
+Merci beaucoup à :
+
+Joris Charbonnier
+Jean-Pierre Bontront
+Sigisbert Le-Caribou
+motezazer
+nada3
+wootcorp
+
+Pour leur précieuse aide en tant que bêta-testeurs.

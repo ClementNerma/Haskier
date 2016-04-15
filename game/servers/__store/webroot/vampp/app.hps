@@ -1,0 +1,126 @@
+'use strict';
+
+load_translation('tr/${lang}.json');
+
+var VPC_Interface = eval(include('vpc.hps'));
+
+register('vampp', {
+  legend   : tr('Make a web server to share files'),
+  arguments: [
+    {
+      short   : 'p',
+      long    : 'port',
+      regex   : RegexCollection.port,
+      legend  : tr('Port to use. If omitted, use the port 80.')
+    },
+    {
+      short   : 'r',
+      long    : 'root',
+      legend  : tr('Serve root directory')
+    }
+  ],
+  callback : function(port, root) {
+    if(this.running)
+      return display_error(tr('VAMPP server is already running'));
+
+    root = root || '/webroot';
+
+    if(!tokenCatch('incoming', $TOKEN))
+      return ;
+
+    var catched = server.catch('incoming:' + (port || 80), function(request, response) {
+      var vpc; request.url = '/' + request.url;
+
+      if(tokenRead(root + '/.vpc', $TOKEN) && server.fileExists(root + '/.vpc')) { // VPC = VAMPP access
+        vpc = server.readFile(root + '/.vpc');
+
+        if(!vpc) {
+          response.headers['code'] = 500;
+          response.content         = tr('Internal server error');
+          response.end();
+          return ;
+        }
+
+        try { vpc = (new VPC_Interface(vpc)).parseUrl(request.url); }
+        catch(e) {
+          response.headers['code'] = 500;
+          response.content         = tr('Internal server error');
+          console.error(e);
+          response.end();
+          return ;
+        }
+
+        if(vpc.url)
+          request.url = vpc.url;
+
+        if(vpc.forbidden) {
+          response.headers['code'] = 403;
+          response.content         = tr('Forbidden access');
+
+          if(!vpc.url) {
+            response.end();
+            return ;
+          }
+        }
+      } else
+        vpc = {}; // Simplify next conditions
+
+      var file   = root + '/' + server.normalize(request.url);
+
+      if(!tokenRead(file, $TOKEN)) {
+        if(!vpc.forbidden) {
+          response.headers['code'] = 404;
+          response.content         = tr('Requested file was not found');
+        }
+
+        response.end();
+        console.debug(file, $TOKEN);
+        return ;
+      }
+
+      if(!server.fileExists(file)) {
+        if(!vpc.forbidden) {
+          response.headers['code'] = 404;
+          response.content = tr('Requested file was not found');
+        }
+      } else {
+        if(!vpc.forbidden)
+          response.headers['code'] = 200;
+        //response.content = file.substr(file.length - 4, 4) === '.xms' ? server.readFile(file) : fescape(server.readFile(file));
+        response.content = server.readFile(file);
+
+        if(typeof response.content === 'string' && file.substr(file.length - 4, 4) === '.xms') {
+          vars.request = request;
+
+          var split = formatVars(response.content, true).replace(/<%([^\\])((.|\n)*?)%>/g, function(match, esc, script) {
+            var out = [];
+            (new Function(['request', 'response', 'server', '$TOKEN', 'echo'], esc + script))(request, response, server, $TOKEN, function(text) { out.push(text); });
+            return out.join('\n');
+          }).split('\n');
+
+          // Remove last empty line
+          if(!split[split.length - 1].length)
+            split.pop();
+
+          response.content = split.join('\n');
+          delete vars.request;
+        }
+
+        if(typeof response.content !== 'string' && !vpc.forbidden) {
+          response.headers['code'] = 500;
+          response.content = tr('Internal server error');
+        }
+      }
+
+      response.end();
+    });
+
+    if(catched)
+      display(tr('VAMPP server is now running'));
+    else
+      display_error(tr('VAMPP server mouting has failed'));
+
+    this.running = true;
+  },
+  running: false
+});

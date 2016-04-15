@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -7,33 +6,52 @@
   <script type="text/javascript">var webPageStarted = Date.now();</script>
   <!-- Load stylesheets !-->
   <link rel="stylesheet" type="text/css" href="css/lib/jquery.terminal.css" />
-  <!--<link rel="stylesheet" type="text/css" href="css/lib/jquery.micro.css" />!-->
   <link rel="stylesheet" type="text/css" href="css/interface.css" />
   <link rel="stylesheet" type="text/css" href="css/fonts.css" />
 </head>
 <body>
   <div id="terminal"></div>
   <div id="clock"></div>
+  <div id="notepad" contenteditable spellcheck="false"></div>
+  <div id="invisible"></div>
+  <div id="devtools"></div>
+
+  <div id="loading">
+    <div>
+      <h1>Loading...</h1>
+      <p>Please wait</p>
+      <p id="wlp">Loading <span id="wl">libraries<!-- wl: What Loading !--></span></p>
+    </div>
+  </div>
+  <script type="text/javascript">
+    if(window.location.search.match(/(\?|&)loading=disable(&|$)/))
+      document.getElementById('loading').remove();
+
+    var diffReferer = Object.keys(window);
+  </script>
 
   <!-- Load jQuery libraries !-->
   <script type="text/javascript" src="js/lib/jquery-2.2.1.min.js"></script>
   <script type="text/javascript" src="js/lib/jquery.terminal.min.js"></script>
   <!-- Load encryption libraries !-->
   <script type="text/javascript" src="js/lib/aes.min.js"></script>
-  <!--<script type="text/javascript" src="js/lib/jquery.micro.minjs"></script>!-->
   <script type="text/javascript" src="js/lib/minimist.js"></script>
   <script type="text/javascript" src="js/lib/date/date.js"></script>
   <script type="text/javascript" src="js/lib/date/core.js"></script>
   <script type="text/javascript" src="js/lib/date/parser.js"></script>
+  <script type="text/javascript" src="js/lib/math.min.js"></script>
   <!-- Load JS localStorage compression tool !-->
   <script type="text/javascript" src="js/lib/lz-string.min.js"></script>
   <!-- Load game files !-->
-  <script type="text/javascript">var _confirm = confirm;</script>
+  <script type="text/javascript">var _confirm = confirm; $('#wl').text('game scripts');</script>
+  <script type="text/javascript" src="js/dev-tools.js"></script>
+  <script type="text/javascript" src="js/dom-events.js"></script>
   <script type="text/javascript" src="js/tests.js"></script>
   <script type="text/javascript" src="js/comm.js"></script>
   <script type="text/javascript" src="js/translate.js"></script>
   <script type="text/javascript" src="js/commands.js"></script>
   <script type="text/javascript" src="js/server.js"></script>
+  <script type="text/javascript" src="js/it-park.js"></script>
   <script type="text/javascript" src="js/aes.js"></script>
   <script type="text/javascript" src="js/hsf-parser.js"></script>
   <script type="text/javascript" src="js/hsf-scope.js"></script>
@@ -44,11 +62,11 @@
     // Debug methods
     function r()     { localStorage.clear(); window.location.reload();    }
     function b(f)    { var d;d=Date.now();f();return Date.now()-d; }
-    function l(n)    { var r=JSON.parse(localStorage.getItem('haskier'));return n?r[n]:r; }
-    function u(n,s)  { var l;if(s){l=serverName;server=servers[s];}var r=server.importFolder({folder:haskier.servers.__store.webroot[n],table:{},path:'/webroot/'+n},'apps/'+n);if(r){saveGame();startApp(n);}if(l){server=servers[l];}return r; }
-    function s()     { for(var i in servers) servers[i].import(haskier.servers[i], 'files'); }
+    function l(n)    { var r=JSON.parse(reverse(LZString.decompressFromUTF16(localStorage.getItem('haskier'))));return n?r[n]:r; }
+    function u(n,s)  { var l;if(s){l=serverName;server=servers[s];}var r=server.importFolder({folder:haskier.servers[ipalias.store].webroot[n],table:{},path:'/webroot/'+n},'apps/'+n);if(r){saveGame();startApp(n);}if(l){server=servers[l];}return r; }
+    function s()     { for(var i in servers){servers[i].import(haskier.servers[i], 'files')}; }
     function bt(f,n) { var d,i;n=n||100;d=Date.now();for(i=0;i<n;i++){f();}return Math.floor((Date.now()-d)/n); }
-    function ls(n)   { var r=localStorage.getItem('haskier');return(n?JSON.stringify(JSON.parse(r)[n]).length:r.length); }
+    function ls(n)   { var r=localStorage.getItem('haskier');return(!n?r.length:LZString.compressToUTF16(JSON.stringify(JSON.parse(reverse(LZString.decompressFromUTF16(r)))[n])).length); }
     function sz(o)   { return(JSON.stringify(o).length); }
   </script>
 </body>

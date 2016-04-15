@@ -1,5 +1,6 @@
 {
     "description": "Mailbox relay server",
+    "alias": "mailbox",
     "ssh": false,
     "networks": {
       "hypernet": {

@@ -48,7 +48,7 @@ var HSF = (new (function() {
         else if(match = line.match(/^(else *|)if *\((.*)\)$/)) {
           if(match[1])
             out.push({state: 'else'});
-          out.push({js: /*'return ' + */match[2].replace(/\bis\b/g, '==').replace(/\bisnt\b/g, '!=='), state: 'if'});
+          out.push({js: /*'return ' + */match[2].replace(/\bis\b/g, '==').replace(/\bisnt\b/g, '!==').replace(/\band\b/g, '&&').replace(/\bor\b/g, '||'), state: 'if'});
         } else if(line === 'else')
           out.push({state: 'else'});
         else if(line === 'endif')
@@ -57,13 +57,18 @@ var HSF = (new (function() {
           for(j = 0; j < parseInt(match[1]); j++)
             out.push({state: 'endif'});
         } else {
-          if(match = line.match(/^(scope\.|vars\.|)([a-zA-Z0-9_\[\]\'\"]+) *= *([a-zA-Z0-9_\.]+) *\((.*)\)([; ]*)$/)) {
+          if(match = line.match(/^(scope\.|vars\.|)([a-zA-Z0-9_\[\]\']+) *= *([a-zA-Z0-9_\.]+) *\((.*)\)([; ]*)$/)) {
             out.push({js: match[3] + '(' + match[4] + ');'});
             out.push({js: (match[1] || 'scope.') + match[2] + '=scope.answer;', state: 'var-assign'});
           } else {
             out.push({js: line});
 
-            if(match = line.match(/^(scope\.|)([a-zA-Z0-9_\[\]\'\"]+) *=(.*)$/)) {
+            if(line.trim().substr(-2) === '|;') {
+              out[out.length - 1].autoStep = true;
+              out[out.length - 1].js       = line.substr(0, line.length - 2);
+            }
+
+            if(match = line.match(/^(scope\.|)([a-zA-Z0-9_\[\]\']+) *=(.*)$/)) {
               out[out.length - 1].state = 'var-assign';
 
               if(!match[1])
@@ -142,8 +147,18 @@ var HSF = (new (function() {
         for(var j = 0; j < keys.length; j++)
           _scope.push(scope[keys[j]]);
 
-        try { var func = (new Function(keys, 'return ' + line.js)), ret; }
-        catch(e) { console.error('JS running has failed. Line: ' + line.js + '\nDetails :\n' + e.stack); }
+        try { var func = (new Function(keys, (line.state === 'if' ? 'return ' : '') + line.js)), ret; }
+        catch(e) {
+          if(events.error)
+            events.error(i, line.js, e.stack);
+          else
+            console.error('JS parsing has failed. Line: ' + line.js + '\nDetails :\n' + e.stack);
+
+          return ;
+        }
+
+        if(i >= code.length)
+          return ;
 
         if(line.state === 'if')
           conds.push(conds.indexOf(false) === -1 ? !!func.apply(window, _scope) : null);
@@ -154,12 +169,16 @@ var HSF = (new (function() {
         else if(conds.indexOf(false) === -1) {
           ret = func.apply(window, _scope);
 
-          if(line.event && events[line.event])
-            events[line.event](ret, i, code[i]);
-        } else if(!line.state)
-          this.step()
+          if(line.event === 'display' && events[line.event])
+            events[line.event](eval(line.js.trim()), i, code[i]);
+        } else if(!line.state || line.autoStep) {
+          var auto = line.autoStep;
+          this.step();
+        }
 
         if(line.state)
+          this.step();
+        else if(!auto && line.autoStep)
           this.step();
     };
 
@@ -311,10 +330,10 @@ var HSF = (new (function() {
       * @return {boolean}
       */
     this.goLine = function(step) {
-      if(step >= code.length)
+      if(typeof step !== 'number' || step > code.length || step < 0 || Math.floor(step) !== step)
         return false;
 
-      i = step;
+      i = step - 1;
       return true;
     };
 
@@ -367,6 +386,13 @@ var HSF = (new (function() {
       */
     this.finished = function() {
       return (i >= code.length - 1);
+    };
+
+    /**
+      * Stop the script's execution
+      */
+    this.stop = function() {
+      i = code.length;
     };
 
     /**

@@ -1,7 +1,6 @@
 clear()
 choice('Pour commencer...', 'Sauvegardes', 'Restaurer sa partie après un Game Over', 'Serveurs et réseaux', 'Boutique d\'applications', 'Partage de fichiers', '${blue:Vérifier le stockage local}', '${cyan:Quitter}');
 
-// There is one else that causes a JS error
 if(answer is 1)
   "${f_grey,italic:=== Introduction ===}\n"
   "Bienvenue dans le ${b_blue:tutoriel} de ${haskier}."
@@ -25,12 +24,24 @@ if(answer is 1)
   "La partie en ${cyan:bleue} désigne le nom de la commande et la partie en ${green:vert} ses arguments."
   "Ici, il n'y a qu'un seul argument : ${green:enable}"
   "Chaque argument doit être séparé par un espace. Si l'argument contient des espaces, il doit être entouré de guillemets, comme ceci :\n"
-  " ${cyan:nom_commande} ${green:argument1 argument2 \"troisième argument très long\" argument4 \"cinquième argument\"}\n"
+  " ${cyan:commande} ${green:argument1 argument2 \"troisième argument très long\" argument4 \"cinquième argument\"}\n"
   "Vous voyez ?"
+  "\nIl existe également des arguments un peu spéciaux, qui sont introduits par un ou deux tirets. Ils permettent de spécifier une valeur :\n"
+  " ${cyan:commande} ${f_green,bold:-}${green:a=15} ${f_green,bold:--}${green:name=Jonas}\n"
+  "Cette commande prend deux arguments : ${green:a} et ${green:name}. Les arguments avec un seul ${bold:-} ne sont composés que d'une seule lettre (ici, ${green:a})"
+  "tandis que ceux qui sont introduits par deux ${bold:--} comportent plusieurs lettres. Ici, on a spécifié que la valeur de ${green:a} est ${italic:15}"
+  "et que celle de ${green:name} est ${italic:Jonas}. Notez que vous pouvez placer ces arguments-là dans n'importe quel ordre.\n"
   "Si vous ne savez pas quelle commande utiliser pour effectuer une action, utilisez la commande ${cyan:help}"
   "Lorsque vous saisissez une commande, appuyez sur la touche ${bold:Entrée} pour l'exécuter"
   "Si un message en rouge s'affiche, alors il est probable qu'une erreur se soit produite. Lisez alors le message affiché à l'écran."
-  "Il s'agit généralement d'une mauvaise utilisation de la commande (mauvais argument...)\n"
+  "Il s'agit généralement d'une mauvaise utilisation de la commande (mauvais argument...)"
+  "\nVous pouvez également obtenir de l'aide sur les différentes commandes du jeu. Pour cela, tapez <${cyan:help <cmd>}>"
+  "Par exemple :\n"
+  " ${cyan:help} ${green:firewall}"
+  "\nAffichera :\n"
+  "Description\n===========\n\n    Gère le pare-feu\n\nSynopsis\n=========\n\n    firewall ${italic:<state>}\n\nParameters\n==========\n\n    ${bold:<state>}\n        ${cyan:enable} Active le pare-feu, ${cyan:disable} Désactive le pare-feu\n"
+  "Nous pouvons donc voir que la commande firewall gère le pare-feu. Elle prend un seul argument, dont la valeur est soit ${cyan:enable} soit ${cyan:disable}."
+  "Vous pouvez donc écrire soit ${cyan:firewall} ${green:enable} soit ${cyan:firewall} ${green:disable}\n"
 else if(answer is 2)
   "\n${f_grey,italic:=== Sauvegardes ===}\n"
   "Votre partie est automatiquement sauvegardée lorsque vous rentrez une commande."

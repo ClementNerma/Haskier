@@ -23,7 +23,7 @@
   // Treat request here
 
   var $ = request.data, ans = [], answers = {
-    'list-inboxes': function() { return user.boxes; },
+    'list-boxes': function() { return user.boxes; },
     'new-messages': function() {
       var out = [];
 
@@ -33,7 +33,7 @@
 
       return user.boxes;
     },
-    
+
     'get-box': function(box) {
       var out = [];
 
@@ -53,6 +53,8 @@
       for(var i = 0; i < user.messages.length; i++)
         if(user.messages[i].id === id)
           return user.messages[i];
+
+      return 'false';
     }
   }, actions = Object.keys(answers);
 

@@ -1,5 +1,6 @@
 {
   "description": "Serveur de test Anonymas n°1",
+  "alias": "anonymas.test_1",
   "networks": {
     "hypernet": {
       "speed": 128

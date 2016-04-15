@@ -1,5 +1,6 @@
 {
     "description": "Master Hypernet server",
+    "alias": "hypernet",
     "ssh": false,
     "networks": {
       "hypernet": {

@@ -1,0 +1,8 @@
+{
+  "Find IP adress from a website URL": "Récupére une adresse IP à partir d'une URL",
+  "Website URL": "URL du site web",
+  "Checking server's informations...": "Recherche des informations du serveur...",
+  "Master IP   : ${ip}"  : "IP Maître : ${ip}",
+  "Linked IP ${i} : ${ip}": "IP liée ${i} : ${ip}",
+  "No IP adress found (url not found)": "Aucun adresse IP trouvée (url non trouvée)"
+}

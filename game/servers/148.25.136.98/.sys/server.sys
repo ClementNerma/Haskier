@@ -1,5 +1,6 @@
 {
   "description": "Anonymas - Serveur DAS",
+  "alias": "anonymas.das",
   "users": {
     "das-ssh": {
       "password": "d@5S5HAçç€sp@s5v0rD",
@@ -8,7 +9,8 @@
         "include": ["/users/das-ssh"],
         "includeRead": ["/users/das-ssh"]
       },
-      "home": "/users/das-ssh"
+      "home" : "/users/das-ssh",
+      "level": "standard"
     }
   },
   "networks": {

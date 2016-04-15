@@ -1,2 +1,6 @@
-master.net  127.32.47.53
-mailbox.net 65.32.48.22
+localhost    ${ipalias.local}
+master.net   ${ipalias.hypernet}
+mailbox.net  ${ipalias.mailbox}
+slow9.com    ${ipalias.slow9}
+bluebird.com ${ipalias['bluebird.central']}
+anony.mas    ${ipalias['anonymas.master']}

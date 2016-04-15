@@ -1,0 +1,451 @@
+
+load_translation('tr/${lang}.json');
+
+var ROOT_DIR, config = false, err, defaultConfig = {}, global_callback, g_menu, g_box;
+
+function loadConfig() {
+  if(!server.dirExists(ROOT_DIR)) {
+    if(!tokenWrite(ROOT_DIR))
+      return false;
+
+    if(!server.mkdir(ROOT_DIR))
+      return false;
+  }
+
+  if(server.fileExists(ROOT_DIR + '/config.rc')) {
+    return (config = server.readJSON(ROOT_DIR + '/config.rc'));
+  } else {
+    // If the write fail, that's not a problem because we put the default configuration here
+    server.writeFile(ROOT_DIR + '/config.rc', defaultConfig);
+    config = clone(defaultConfig);
+    return config;
+  }
+}
+
+whenLogged(function() {
+  ROOT_DIR = '/users/' + serverUser + '/.appdata/mailbox'; config = false; err; defaultConfig = {};
+
+  if(!tokenRead(ROOT_DIR))
+    err = tr('Mailbox requires an access to appdata directory');
+  else
+    loadConfig();
+});
+
+register('mail-cli', {
+  legend   : tr('Manage your emails'),
+  arguments: [],
+  async    : true,
+  callback : function(resolve) {
+    global_callback = resolve;
+    options         = null   ;
+
+    if(!config) {
+      if(err)
+        return resolve_error('${red:' + err + '}');
+      else
+        loadConfig();
+    }
+
+    // If no account has been configured yet
+    if(!config.account) {
+      display(tr('You haven\'t configured any account yet'));
+      display(tr('Please fill your identifiers now to use Mailbox'));
+      display('');
+      //ignoreKeys = false;
+
+      // Input the email adress
+      question(tr('Email    :'), function(email) {
+        term.set_prompt('Checking...'); //ignoreKeys = true;
+
+        // Ask the server : Does this adress exist ?
+        req('mailbox.net/exists-adress', {adress: email}, function(content) {
+          // If the server doesn't return 'true', this adress doesn't exist
+          if(content !== 'true')
+            return resolve('${red:' + tr('This email adress doen\'t exist.') + '}');
+
+          //ignoreKeys = false;
+          // Input the password
+          question(tr('Password :'), function(pass) {
+            _login(email, pass, resolve);
+          });
+        });
+      });
+    } else
+      // After this (very) big condition, if the code here is runned
+      // User is already logged and account informations have been loaded into the configuration file
+
+      // Display the menu
+      homeMenu();
+  }
+});
+
+register('mail-login', {
+  legend   : tr('Login to your account'),
+  arguments: [
+    {
+      short : 'a',
+      long  : 'adress',
+      legend: tr('Email to login as')
+    },
+    {
+      short : 'p',
+      long  : 'password',
+      legend: tr('Password for specified email')
+    }
+  ],
+  async   : true,
+  callback: function(adress, password, resolve) {
+    if(typeof adress !== 'string')
+      return resolve('${red:' + tr('Command-line logger requires an email adress') + '}');
+
+    if(typeof adress === 'string') {
+      if(!password || typeof password !== 'string')
+        return resolve('${red:' + tr('Command-line logger requires a password') + '}');
+
+      _login(adress, password, resolve);
+    }
+  }
+});
+
+register('mail-send', {
+  legend   : tr('Send an e-mail automatically'),
+  async    : true,
+  arguments: [
+    {
+      _       : 'to',
+      legend  : tr('Adress to receive the message'),
+      regex   : RegexCollection.Email,
+      required: true
+    },
+    {
+      _       : 'subject',
+      legend  : tr('Mail\'s subject'),
+      regex   : '[a-zA-Z0-9_ ,;\\-]{3,256}',
+      required: true,
+      error   : tr('Subject must be composed of letters, digits, _ , ; -. Length must be between 3 and 256 characters.')
+    },
+    {
+      _       : 'file',
+      legend  : tr('File which contains the mail\'s content'),
+      required: true
+    }
+  ],
+  callback : function(to, subject, file, resolve) {
+    if(!config.account) {
+      display(tr('You haven\'t configured any account yet'));
+      display(tr('Please fill your identifiers now to use Mailbox'));
+      return resolve();
+    }
+
+    if(!server.fileExists(file))
+      return resolve('${red:' + tr('Source file not found') + '}');
+
+    var content = server.readFile(file);
+
+    if(!content)
+      resolve('${red:' + tr('Failed to read file') + '}');
+
+    global_callback = function() { resolve(tr('E-mail was sent successfully to ${underline:${adress}}', [to.replace('@', '&#64;')])); };
+    writeMenu({to: to, subject: subject, content: content});
+  }
+});
+
+/**
+  * Login to an account
+  * @param {string} email
+  * @param {string} password
+  * @param {function} callback
+  */
+function _login(email, pass, callback) {
+  //ignoreKeys = true;
+  term.set_prompt(tr('Checking...'));
+
+  // Ask the server for getting account informations
+  req('mailbox.net/login', {adress: email, password: pass}, function(content) {
+    // Try to parse server's response as a JSON object
+    // If it fails, the server didn't return account informations
+    try      { content = JSON.parse(content); }
+    catch(e) { return callback('${red:' + tr('Wrong credentials, server refused login. Please try again.') + '}'); }
+
+    // Write informations in the configuration file
+    config.account        = content;
+    config.account.adress = email  ;
+
+    // If the user is not able to write this file
+    if(!tokenWrite(ROOT_DIR, $TOKEN))
+      err = tr('Mailbox requires an access to appdata directory');
+
+    // If the write fails
+    if(!server.writeFile(ROOT_DIR + '/config.rc', config))
+      return callback('${red:' + tr('Failed to write configuration file. Please try again.') + '}');
+
+    // All has been done !
+    // User is now logged to his account !
+    callback(tr('You\'ve been successfully logged in.\nWelcome, ${firstName} ${lastName} !', [content['firstName'], content['lastName']]));
+  });
+}
+
+/**
+  * Do a simple request to the server
+  * @param {string} url
+  * @param {object} data
+  * @param {callback} success
+  * @param {callback} [error] If omitted, will display an error and quit the program
+  * @param {callback} [progress]
+  */
+function req(url, data, success, error, progress) {
+  return server.download({
+    dnsUrl  : url,
+    data    : data,
+    error   : error || function(err) {
+      // Failed to get server's response
+      global_callback('${red:' + tr('Failed to load server\'s informations. Please try again') + ' :}\n${italic:' + err.split('\n').join('}\n${italic:') + '}');
+    },
+    success : success ,
+    progress: progress
+  });
+}
+
+/**
+  * Perform an IMAP request on the Mailbox server
+  * @param {object} data
+  * @param {callback} success
+  * @param {callback} [error] If omitted, will display an error and quit the program
+  */
+function imap(data, success, error) {
+  if(!config || !config.account || !config.account.token)
+    throw new Error('Can\'t make IMAP request because no token was found');
+
+  data.token = config.account.token;
+
+  var eq, barSize = 50;
+
+  return req('mailbox.net/imap', data, function(content) {
+    term.set_prompt('');
+    success(JSON.parse(content));
+  }, error ? function() {
+    term.set_prompt('');
+    error.apply(this, arguments);
+  } : undefined, function(progress) {
+    term.set_prompt('[' + '='.repeat(eq = Math.floor(progress * barSize)) + ' '.repeat(barSize - eq) + '] ' + Math.floor(progress * 100) + '%');
+  });
+}
+
+/* Directly runnable part */
+
+function homeMenu() {
+  term.clear();
+
+  choice([
+    tr('Write a new message...'),
+    tr('Read messages'),
+    '${cyan:' + tr('Quit') + '}'
+  ], function(ans) {
+    if(ans === 1)
+      writeMenu();
+    else if(ans === 2)
+      imap({'list-boxes': true}, boxesMenu);
+    else // ans === 3
+      global_callback();
+  });
+}
+
+function boxesMenu(content) {
+  term.clear();
+  var boxes = Object.keys(content), names = [];
+
+  for(var i = 0; i < boxes.length; i++)
+    names.push(tr(content[boxes[i]]));
+
+  choice(names.concat('${cyan:' + tr('Back') + '}'), function(num, txt) {
+    term.set_prompt('');
+
+    if(num === names.length + 1)
+      return homeMenu();
+
+    g_menu = content;
+    imap({'get-box': boxes[num - 1]}, displayBox);
+  });
+}
+
+function displayBox(box) {
+  term.clear();
+  var titles = [], max = 1, i;
+
+  for(i = 0; i < box.length; i++)
+    max = Math.max(max, box[i].sender.length);
+
+  for(i = 0; i < box.length; i++)
+    titles.push('${green:' + fescape(formatDate(box[i].time)) + '} '
+              + fescape(box[i].sender) + ' '.repeat(max - box[i].sender.length) + ' '
+              + fescape(box[i].subject) || '${italic,f_grey:' + tr('No subject') + '}');
+
+  //ignoreKeys = false;
+  choice(titles.concat('${cyan:' + tr('Back to home') + '}'), function(ans) {
+    //ignoreKeys = true;
+    term.set_prompt('');
+
+    if(ans === titles.length + 1)
+      return boxesMenu(g_menu);
+
+    g_box = box;
+
+    imap({'get-mail': box[ans - 1].id}, displayMail);
+  });
+}
+
+function displayMail(mail) {
+  term.clear();
+
+  vars.mailbox = {
+    adress   : (config.account.adress + '&#64;mailbox.net') /* The "&#64;" instead of a simple "@" fixes a jQuery.terminal very strange bug */,
+    firstName: config.account.firstName,
+    lastName : config.account.lastName ,
+    fullName : config.account.firstName + config.account.lastName
+  };
+
+  display('${italic:' + tr('Subject :') + '} ' + fescape(mail.subject));
+  display('${italic:' + tr('Date    :') + '} ' + fescape(formatDate(mail.time)));
+  display(' ');
+  display(mail.content);
+  display(' ');
+
+  display('${italic:' + tr('Press Return key to continue...') + '}');
+  term.set_prompt('');
+  delete vars.mailbox;
+
+  ignoreKeys = false;
+  keydownCallback = function(e) {
+    if(e.keyCode === 13)
+      displayBox(g_box);
+    else
+      return RESTORE_KEYDOWN_CALLBACK;
+  };
+}
+
+function writeMenu(options) {
+  options = options || {};
+
+  if(options.content)
+    write_send(options.from || config.account.adress + '@mailbox.net', options.to, options.subject, options.content, true);
+  else if(options.subject)
+    write_content(options.from || config.account.adress + '@mailbox.net', options.to, options.subject, true);
+  else if(options.to)
+    write_subject(options.from || config.account.adress + '@mailbox.net', options.to, true);
+  else {
+    question(tr('Send to  :'), function(ans) {
+      if(!ans) { if(options.resolveOnQuit) return global_callback(null); else return homeMenu() ; }
+
+      req('mailbox.net/exists-adress', {adress: ans}, function(content) {
+        if(content !== 'true') {
+          display_error(tr('Specified adress was not found'));
+
+          if(options.resolveOnQuit)
+            global_callback(false);
+          else
+            keyPause(homeMenu);
+
+          return ;
+        }
+
+        write_subject(options.from || config.account.adress + '@mailbox.net', ans);
+      })
+    });
+  }
+}
+
+function write_subject(from, to, resolveOnQuit) {
+  question(tr('Subject  :'), function(ans) {
+    if(!ans) { if(resolveOnQuit) return global_callback(null); else return homeMenu(); }
+
+    write_content(from, to, ans, resolveOnQuit);
+  });
+}
+
+function write_content(from, to, subject, content, resolveOnQuit) {
+  if(!content)
+    display('\n' + tr('Write here your message. Formatting :\n - Use ${bold:** text **} to make it bold\n - Use ${bold:__ text __} to make it italic\n\nType ${bold:<END>} when your message is finished or ${bold:<QUIT>} to cancel it.') + '\n\n');
+
+  question('> ', function(ans) {
+    if(ans === '<QUIT>')
+      if(resolveOnQuit) return global_callback(null); else return homeMenu();
+
+    if(ans === '<END>') {
+      display(' ');
+      write_send(from, to, subject, content || '', resolveOnQuit);
+    } else
+      write_content(from, to, subject, (content ? content + '\n' : '') + ans, resolveOnQuit);
+  });
+}
+
+function write_send(from, to, subject, content, resolveOnQuit) {
+  to   =  to .replace(/@(.*)$/, '');
+
+  var path    = '/webroot/accounts/' + to + '.account',
+      account = aliases.mailbox.readJSON(path), err = !account,
+      own_account = (from.replace(/@mailbox\.net$/, '') === to) ? account : aliases.mailbox.readJSON('/webroot/accounts/' + from.replace(/@mailbox\.net$/) + '.account');
+
+  if(!resolveOnQuit)
+    term.set_prompt(tr('Sending mail...'));
+
+  ignoreKeys = true;
+
+  content = content
+    .replace(/\*\*(.*?)\*\*/mg, '${bold:$1}')
+    .replace(/__(.*?)__/mg, '${italic:$1}');
+
+  if(!err) {
+    account.messages.push({
+      id     : (server.generateId() + server.generateId()).replace(/\-/g, ''),
+      box    : 'inbox',
+      sender : from + (from.indexOf('@') === -1 ? '@mailbox.net' : ''),
+      subject: subject,
+      time   : clock.getTime(),
+      content: content
+    });
+
+    if(!aliases.mailbox.writeFile(path, account))
+      err = true;
+  }
+
+  if(!err && own_account) {
+    own_account.messages.push({
+      id     : (server.generateId() + server.generateId()).replace(/\-/g, ''),
+      box    : 'sent',
+      sender : to + (to.indexOf('@') === -1 ? '@mailbox.net' : ''),
+      subject: subject,
+      time   : clock.getTime(),
+      content: content
+    });
+
+    aliases.mailbox.writeFile('/webroot/accounts/' + config.account.adress + '.account', own_account);
+  }
+
+  if(err && !resolveOnQuit)
+    display_error(tr('Failed to send mail'));
+
+  if(!err && !resolveOnQuit)
+    display(tr('Message was sent successfully'));
+
+  ignoreKeys = false;
+
+  if(resolveOnQuit)
+    global_callback(!err);
+  else
+    keyPause(homeMenu);
+}
+
+// Export all !
+
+exports('load_config', function() { return clone(loadConfig()); });
+exports('imap'       , imap);
+exports('send_mail'  , function(from, to, subject, content, callback) {
+  global_callback    = callback || function(){};
+
+  writeMenu({
+    from    : from  ,
+    to      : to    ,
+    subject: subject,
+    content: content
+  });
+});

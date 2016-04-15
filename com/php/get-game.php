@@ -18,4 +18,4 @@ function recurse($dir) {
   return $out;
 }
 
-die(json_encode(recurse('../../game')));
+die(json_encode(recurse('../../game'), JSON_FORCE_OBJECT));

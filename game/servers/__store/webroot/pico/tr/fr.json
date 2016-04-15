@@ -1,0 +1,15 @@
+{
+  "Text editor": "Éditeur de texte",
+  "Filename": "Nom du fichier",
+  "Exit": "Quitter",
+
+  "No file has been opened": "Aucun fichier n'a été ouvert",
+  "There isnt any change to save": "Il n'y a aucune modification à sauvegarder",
+  "All changes were saved": "Tous les modifications ont été sauvegardées",
+
+  "Please input the file path": "Veuillez saisir l'emplacement du fichier",
+  "Failed to write changes in a temporary file": "Impossible d'écrire les modifications dans un fichier temporaire",
+  "All changes were written in": "Toutes les modifications ont été écrites dans",
+  "File hasn't been modified": "Le fichier n'a pas été modifié",
+  "Do you want to save changes ?": "Voulez-vous sauvegarder vos modifications ?"
+}

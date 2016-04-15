@@ -1,9 +1,11 @@
 {
     "description": "Personnal computer for ${name}",
+    "alias": "local",
     "users": {
       "Shaun": {
         "password": "m@st€rP@ssw0rd",
-        "token": "user"
+        "token": "admin",
+        "level": "admin"
       }
     },
     "networks": {

@@ -1,0 +1,9 @@
+{
+    "name"   : "Icefox",
+    "author" : "Webzilla",
+    "upload" : "19/03/2015",
+    "license": "CC-BY-NC-ND-4.0",
+    "version": "3.2",
+
+    "description": "Internet browser"
+}

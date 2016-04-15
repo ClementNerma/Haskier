@@ -1,0 +1,6 @@
+HomeFile home.xms
+
+# Traditionnal XMS redirection rule
+RewriteRule / home.xms
+RewriteRule (.*)\.xms $&
+RewriteRule (.*) $1.xms

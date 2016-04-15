@@ -69,10 +69,9 @@ function timeDiff(moment) {
   for(var i = 0; i < list.length; i++) {
     if(moment[list[i]]) {
       passedNot = true;
-
-      cc['set' + ucfirst(list[i])](moment[list[i]]);
+      cc['set' + ucfirst(list[i] === 'days' ? 'date' : list[i])](moment[list[i]]);
     } else if(passedNot)
-      cc['set' + ucfirst(list[i])](0);
+      cc['set' + ucfirst(list[i] === 'days' ? 'date' : list[i])](0);
   }
 
   return cc.getTime() - clock.getTime();

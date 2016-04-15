@@ -1,0 +1,9 @@
+{
+  "Connect to a distant server": "Connection à un serveur distant",
+  "User name": "Nom d'utilisateur",
+  "User password": "Mot de passe de l'utilisateur",
+
+  "This server doesn't exist": "Ce serveur n'existe pas",
+  "Server refused the SSH connection": "Le serveur a refusé la connection SSH",
+  "Server said : Wrong username or password": "Le serveur a dit : Mauvais nom d'utilisateur ou mot de passe"
+}

@@ -41,6 +41,38 @@ endif
 : MISSIONS
 #include("missions/00.hsf")
 #include("missions/01.hsf")
+#include("missions/02.hsf")
 
 : GAME_WON
+
+if(fastdev && query['everplay'])
+  ('do nothing...')
+endif
+
+human_talking = true;
+
+" "
+"${italic:Vous avez terminé le jeu. Félicitations !}"
+"${italic:Le jeu n\'est pas encore terminé et le scénario est en cours de rédaction. La suite paraîtra d\'ici peu de temps !}"
+"${italic:Je vous remercie d\'avoir joué à Haskier. Si ce jeu vous a plu, vous pouvez vous rendre sur le thread OpenClassrooms}"
+"${italic:ou bien sur mon compte Twitter (@ClementNerma) pour donner vos impressions sur le jeu !}"
+" "
+" "
+
+(humanSpeed = 100); |;
+
+"Crédits"
+"======="
+" "
+"Merci à :"
+" "
+"${bold:Joris Charbonnier}"
+"${bold:Jean-Pierre Bontront}"
+"${bold:Sigisbert Le-Caribou}"
+"${bold:motezazer}"
+"${bold:nada3}"
+"${bold:wootcorp}"
+" "
+"Pour leur précieuse aide en tant que bêta-testeurs."
+"Ainsi qu'à vous pour avoir joué au jeu !"
 gameWon();

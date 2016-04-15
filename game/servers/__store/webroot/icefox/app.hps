@@ -1,0 +1,117 @@
+'use strict';
+
+load_translation('tr/${lang}.json');
+
+register('icefox', {
+  legend   : tr('Get a web page\'s content'),
+  arguments: [
+    {
+      _       : 'url',
+      legend  : tr('File\'s URL'),
+      required: true
+    },
+    {
+      long    : 'IP',
+      legend  : tr('Server\'s IP if you want to connect to a server. Then, remove the prefix ${grey:xxx://}'),
+      regex   : RegexCollection.IP,
+      error   : tr('Bad IP adress was specified')
+    },
+    {
+      short   : 'p',
+      long    : 'port',
+      legend  : tr('Port to use. If omitted, use the port 80.'),
+      regex   : RegexCollection.port
+    },
+    {
+      short   : 'd',
+      long    : 'download',
+      legend  : tr('Download location. If omitted, will just display the file.')
+    },
+    {
+      short   : 't',
+      long    : 'disallow-styles',
+      legend  : tr('Disallow styles to be displayed')
+    },
+    {
+      short   : 's',
+      long    : 'allow-scripts',
+      legend  : tr('Allow web page to run scripts on your server')
+    }
+  ],
+  async    : true,
+  callback : function(url, IP, port, dw, disallowStyles, allowScripts, resolve, cmd) {
+    var _IP = IP;
+
+    if(IP) {
+      // connect to a specific server
+      if(!servers.hasOwnProperty(IP) || !servers[IP].network('hypernet'))
+        return display_error(tr('This server doesn\'t exist or isn\'t connected to hypernet'));
+    } else {
+      // use Hypernet DNS
+      // here, we have to find the IP adress
+
+      var parsed = parseUrl(url);
+
+      if(!parsed)
+        return resolve('${red:' + tr('Cannot resolve DNS domain') + '}');
+
+      url  = parsed.url;
+      IP   = parsed.IP ;
+      port = port || parsed.port; // can be 'undefined'
+    }
+
+    var content = '', eq, barSize = 50, finalUrl = url.split(/\//)[url.split(/\//).length - 1];
+
+    if(dw && typeof dw !== 'string')
+      dw = format('/users/${user}/downloads/') + finalUrl;
+    else if(dw && server.dirExists(dw))
+      dw += '/' + finalUrl;
+
+    if(dw && !needsWrite(dw))
+      return resolve();
+
+    term.set_prompt('[' + ' '.repeat(barSize) + '] 0%');
+
+    server.download({
+      url     : url ,
+      IP      : IP  ,
+      port    : port,
+      data    : cmd.$add || undefined,
+      progress: function(progress) {
+        term.set_prompt('[' + '='.repeat(eq = Math.floor(progress * barSize)) + ' '.repeat(barSize - eq) + '] ' + Math.floor(progress * 100) + '%');
+      },
+      error   : function(err) {
+        resolve('${red:' + err.split('\n').join('}\n${red:') + '}');
+      },
+      success : function(content) {
+        if(dw) {
+          if(!server.writeFile(dw, content))
+            resolve('${red:' + tr('Unable to write the download\'s location') + '}');
+          else
+            resolve(tr('Download has finished successfully'));
+        } else {
+            try { var web = require('web-engine'); }
+            catch(e) { return resolve('${red:' + tr('The web engine is not installed on your server. Icefox needs it to render web pages.\nTo install it, run :').split('\n').join('}\n${red:') + '}\n\n${red:cpm install web-engine}'); }
+
+            var err = web.render({
+              content     : content,
+              allowStyles : !disallowStyles,
+              allowScripts: !!allowScripts,
+              url         : makeUrl(IP, url, port, 'hypernet'),
+              callback    : function(err, out) {
+                if(err)
+                  resolve('${red:' + err + '}');
+                else if(out.do === 'redirect')
+                  commands.icefox.callback(out.target, _IP, port, dw /* false */, disallowStyles, allowScripts, resolve, {$add: out.data});
+                else if(out.do === 'quit')
+                  resolve();
+              }
+            });
+
+            if(err)
+              resolve('${red:' + err + '}');
+          }
+      }
+    });
+  }
+});

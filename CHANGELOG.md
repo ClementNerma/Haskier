@@ -1,3 +1,51 @@
+Fr 15-04-2016
+Haskier b-0.6 (revision 1)
+- Added notepad + keyboard shortcuts
+- Improved `mailbox` application : Can now send emails
+- Created Web Engine, support of input fields and links into web pages
+- Added `meetexploit` application (`metacl` shell command) + `ac7-certificate-unverif` & `ssh-hack` exploits
+- Added `iplink` application
+- Added awesome credits when game is finished !
+- Added enterprises IT parks and deployment API
+- Pico v2.0 : Now using 'micro' editor
+
+*** === Scenario === ***
+- Added Mission 02
+- Improved (a little) the tutorial
+
+*** === Misc === ***
+- `pico` editor don't ask for saving changes if there are no changes
+- Improved clipboard management. Added keyboard shortcuts : Ctrl+C, Ctrl+V, Ctrl+D, Ctrl+Shift+D, Ctrl+K, Ctrl+B
+- Mailbox API : Can send mail (synchronously !)
+- Added loading screen
+- Improved in-page styles support
+- Added `error` event for HSF.Script
+- Full support for `clear` and `exit` commands that was not working properly due to jQuery.terminal catching
+- URL parsing now supports port number
+- VAMPP : Added VPC directive `HomeFile` (default: `index.xms`) + comments
+- Server class doesn't requires an IP anymore, can make anonymous servers
+- Added dependencies injection to Server class : now permit to manager users, networks and so more ! (.user(), .network(), .allowSSH()...)
+- Go fullscreen with Ctrl+F shortcut
+- Added developper's console
+- Added HSF "|;" operator
+- Improved HSF reading using Math.js parser (e.g. "a.b['c'].d")
+- Dynamic DNS adresses (using haskier variables `window.vars`)
+- Improved `icefox` application : `-d` option now supports folders
+- Improved `help` command : can now display examples for commands
+- Added user levels ("system" "admin" "user"/"guest")
+- Added servers security levels (0 1 2 3 4 5 ...), using a vulnerability list (['ac7-certificate-unverif']...)
+
+*** === Bug fixes === ***
+- MAJOR Fixed bug in Mission 01 that was stopping the game for a particular choice (using of wrong 'end' operator instead of 'endif')
+- `pico` editor was creating many terminals on DOM
+- todo() is verified just after setting
+- HSF scripts are paused until there is (at least) one running command
+- whenLogged() command (app argument) was not running the callback if called after game is ready
+- [INVISIBLE] HSF.Script.goLine() was placing one line after requested line
+- Fixed a bug with Game Over if first input is not expected one ("gameover")
+- Fixed a bug with empty folders into /game folder (PHP was retuning an array instead of an object)
+- Fixed a bug with `mkdir` command (was using `displayErr()` instead of `display_error()`)
+
 Su 03-04-2016
 Haskier b-0.5 (revision 2)
 - Added `didactic` command to get informations on game itself

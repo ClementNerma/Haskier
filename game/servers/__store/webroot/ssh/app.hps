@@ -1,0 +1,35 @@
+
+load_translation('tr/${lang}.json');
+
+register('ssh', {
+  legend   : tr('Connect to a distant server'),
+  arguments: [
+    {
+      _       : 'IP',
+      legend  : tr('Server\'s IP'),
+      required: true,
+      regex   : RegexCollection.IP
+    },
+    {
+      _       : 'username',
+      legend  : tr('User name'),
+      required: true,
+      regex   : '([a-zA-Z0-9_\-]+)'
+    },
+    {
+      _       : 'password',
+      legend  : tr('User password'),
+      required: true
+    }
+  ],
+  callback : function(IP, username, password) {
+    if(!servers.hasOwnProperty(IP))
+      return display_error(tr('This server doesn\'t exist'));
+
+    if(!servers[IP].allowSSH())
+      return display_error(tr('Server refused the SSH connection'));
+
+    if(!servers[IP].login(username, password, true))
+      return display_error(tr('Server said : Wrong username or password'));
+  }
+});

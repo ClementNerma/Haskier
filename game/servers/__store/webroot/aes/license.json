@@ -1,0 +1,9 @@
+{
+    "name"   : "AES",
+    "author" : "SEA",
+    "upload" : "04/04/2015",
+    "license": "CC-BY-NC-ND-4.0",
+    "version": "1.0",
+
+    "description": "AES encryption tool using OS module"
+}

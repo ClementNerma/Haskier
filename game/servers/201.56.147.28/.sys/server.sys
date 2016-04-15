@@ -1,0 +1,10 @@
+{
+    "description": "Slow9's server",
+    "alias": "slow9",
+    "ssh": false,
+    "networks": {
+      "hypernet": {
+        "speed": 2048
+      }
+    }
+}

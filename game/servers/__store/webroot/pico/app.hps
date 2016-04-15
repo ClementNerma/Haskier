@@ -1,0 +1,135 @@
+
+load_translation('tr/${lang}.json');
+
+var cursor = {y: 0}, lines, input, display, pico, resolver, filepath;
+var tmp_file = '/users/' + serverUser + '/.tmp/pico.file';
+
+register('pico', {
+  legend   : tr('Text editor'),
+  async    : true,
+  arguments: [
+    {
+      _       : 'path',
+      legend  : tr('Filename')
+    }
+  ],
+  callback : function(path, resolve) {
+    // Initialization process
+    if(!this.data.pico) {
+      window.eval(include('jquery.micro.js'));
+      $('body').append($(document.createElement('style')).attr('type', 'text/css').html(include('jquery.micro.css')));
+
+      $('body').append(
+        $(document.createElement('div'))
+          .attr('id', 'app-pico-editor')
+          .css('position', 'absolute')
+          .css('top', 0)
+          .css('left', 0)
+          .css('z-index', 1002)
+          .hide()
+      );
+
+      this.data.pico = $('#app-pico-editor').micro({
+        width  : $(window).width () - 2,
+        height : $(window).height() - 2,
+        save   : function(c) {
+          if(!filepath) {
+            $setTimeout(function(){pico.micro('message', ' ' + tr('No file has been opened') + ' ');});
+            return ;
+          }
+
+          var text = pico.micro('get');
+
+          if(text === input) {
+            $setTimeout(function(){pico.micro('message', ' ' + tr('There isnt any change to save') + ' ');});
+            return ;
+          }
+
+          if(!server.writeFile(filepath, text)) {
+            $setTimeout(function(){pico.micro('message', ' ' + tr('Failed to write file') + ' ');});
+            return ;
+          }
+
+          input = text;
+          $setTimeout(function(){pico.micro('message', ' ' + tr('All changes were saved') + ' ');});
+        },
+        exit   : function(c) {
+          var text = pico.micro('get');
+
+          pico.hide();
+          term.focus();
+
+          //ignoreKeys = false;
+
+          if(text === input)
+            return resolver(tr('File hasn\'t been modified'));
+
+          confirm(tr('Do you want to save changes ?'), function(ans) {
+            if(!ans)
+              return resolver();
+
+            if(filepath) {
+              if(!server.writeFile(filepath, text))
+                resolver('${err:' + tr('Failed to write file') + '}');
+              else
+                resolver();
+            } else {
+              //ignoreKeys = false;
+
+              question(tr('Please input the file path') + ' [' + tmp_file + '] :', function(ans) {
+                if(ans && !server.writeFile(ans, text))
+                  resolver('${err:' + tr('Failed to write file') + '}');
+                else if(ans)
+                  resolver();
+                else {
+                  if(!needsWrite(tmp_file))
+                    return resolver();
+
+                  if(!server.writeFile(tmp_file, text))
+                    resolver('${err:' + tr('Failed to write changes in a temporary file') + '}');
+                  else
+                    resolver(tr('All changes were written in') + ' ' + tmp_file);
+                }
+              });
+            }
+          });
+        }
+      });
+
+      // Defining here to use in the callback below
+      pico = this.data.pico;
+
+      $(window).resize(function() {
+        pico.width($(window).width() - 2).height($(window).height() - 2);
+        pico.micro('refresh');
+      });
+    } else {
+      if(path) {
+        if(!needsRead(path))
+          return resolve();
+
+        input = server.readFile(path);
+
+        if(input === false)
+          return resolve('${red:' + tr('Failed to read file') + '}');
+
+        pico.micro('set', input);
+      } else
+        input = '';
+
+      pico = this.data.pico;
+      resolver = resolve;
+
+      filepath = path;
+      pico.show();
+      // TODO: Fix bug : Doesn't work !
+      // TODO: Remove bottom bar to change keyboard shortcuts !!
+      // TODO: Try to remove all 'micro' keyboard shortcuts to replace by our shortcut
+      pico.focus();
+      pico.micro('focus');
+    }
+  }
+});
+
+if(!$('#app-pico-editor').length)
+  getcmd('pico').callback();

@@ -2,12 +2,11 @@
 
 const packetSize = 64;
 var   servers    = {};
+var   aliases    = {};
+var   ipalias    = {};
+var   aliasip    = {};
 
-Object.defineProperty(window, 'Server', {
-  enumerable: true,
-  configurable: false,
-  writable: false,
-  value: function(_ip) {
+var Server = function(_ip, _alias) {
 
   var _chdir  = '/',
         sep   = '/',
@@ -16,17 +15,30 @@ Object.defineProperty(window, 'Server', {
       _states = {},
       _netwk  = {},
       _events = {incoming: {}},
+      _home   = null,
+      sys     = null,
 
       _ports    = [],
       _requests = {};
 
-  if(!_ip)
-    throw new Error('When instanciating server : Missing IP adress');
+  if(_ip) {
+    if(servers.hasOwnProperty(_ip))
+      throw new Error('When instanciating server : This IP : "' + _ip + '" is already taken');
 
-  if(servers.hasOwnProperty(_ip))
-    throw new Error('When instanciating server : This IP "' + _ip + '" is already taken');
+    servers[_ip] = this;
+  }
 
-  servers[_ip] = this;
+  if(_alias) {
+    if(aliases.hasOwnProperty(_alias))
+      throw new Error('When instanciating server : This alias : "' + _alias + '" is already taken');
+
+    aliases[_alias] = this  ;
+
+    if(_ip) {
+      ipalias[_alias] = _ip   ;
+      aliasip[_ip] = _alias;
+    }
+  }
 
   /**
     * Generate a random ID
@@ -128,6 +140,13 @@ Object.defineProperty(window, 'Server', {
     if(!input)
       return (allowChdir ? _chdir : '');
 
+    // Support of ~ operator
+    if(input.replace(/\//g, '') === '~' && _home)
+      return _home;
+
+    if(input.replace(/^\/+/, '').substr(0, 2) === '~/' && _home)
+      input = _home + '/' + input.substr(2);
+
     var parts = input.split(/\\|\//), out = [];
 
     if(input.substr(0, 1) !== '/' && _chdir !== '/' && allowChdir)
@@ -156,6 +175,9 @@ Object.defineProperty(window, 'Server', {
     */
   function _fs(_path, type, write) {
     var path = normalize(_path, true).substr(1);
+
+    if(typeof path === 'undefined')
+      return false;
 
     if(!path) {
       if(typeof _files !== type)
@@ -265,6 +287,7 @@ Object.defineProperty(window, 'Server', {
       return false;
 
     var ret = _fs(file, 'string', asPlain(content));
+
     if(ret && _table[file = normalize(file)])
       _table[file].edited = (new Date()).getTime();
 
@@ -588,9 +611,9 @@ Object.defineProperty(window, 'Server', {
     */
   this.state = function(name, value) {
     if(typeof value !== 'undefined')
-      _states[name] = clone(value);
+      _states[name] = value;
 
-    return clone(_states[name]);
+    return _states[name];
   };
 
   /**
@@ -614,7 +637,6 @@ Object.defineProperty(window, 'Server', {
     || typeof folder.table !== 'object' || !folder.table || Array.isArray(folder.table))
        return false;
 
-    folder   = clone(folder);
     var path = normalize(path || '/' + folder.path, true);
 
     if(this.dirExists(path))
@@ -647,11 +669,11 @@ Object.defineProperty(window, 'Server', {
       if(keys[i].substr(0, path.length + 1) === path + '/' || keys[i] === path)
         table[keys[i].substr(path.length + 1)] = _table[keys[i]];
 
-    return clone({
+    return {
       path  : path  ,
       folder: folder,
       table : table
-    });
+    };
   };
 
   /**
@@ -660,26 +682,22 @@ Object.defineProperty(window, 'Server', {
     * @param {string} [somewhere] Import just a part of data (see @export)
     */
   this.import = function(data, somewhere) {
-    data   = clone(data);
-
     if(!somewhere) {
-      _table  = data.table;
-      _files  = data.files;
-      _chdir  = data.chdir || '/';
-      _states = data.states;
-      _netwk  = data.netwk;
-      sep     = data.sep   || '/';
+      _table  = clone(data.table);
+      _files  = clone(data.files);
+      _chdir  = clone(data.chdir || '/');
+      _states = clone(data.states);
+      _netwk  = clone(data.netwk);
+      sep     = clone(data.sep   || '/');
     } else {
       if(somewhere === 'files')
-        _files  = data;
+        _files  = clone(data);
       else if(somewhere === 'table')
-        _table  = data;
+        _table  = clone(data);
       else if(somewhere === 'states')
-        _states = data;
-      else if(somewhere === 'networks')
-        _netwk  = data;
+        _states = clone(data);
       else if(somewhere === 'sep')
-        sep     = data;
+        sep     = clone(data);
       else
         return false;
     }
@@ -697,7 +715,7 @@ Object.defineProperty(window, 'Server', {
     try { data = JSON.parse(data); }
     catch(e) { return false; }
 
-    this.import(data, somewhere);
+    this.import(clone(data), somewhere);
     return true;
   };
 
@@ -708,14 +726,14 @@ Object.defineProperty(window, 'Server', {
     */
   this.export = function(something) {
     if(!something)
-    return {
-      table  : _table,
-      files  : _files,
-      chdir  : _chdir,
-      states : _states,
-      netwk  : _netwk,
-      sep    : sep
-    };
+      return clone({
+        table  : _table,
+        files  : _files,
+        chdir  : _chdir,
+        states : _states,
+        netwk  : _netwk,
+        sep    : sep
+      });
 
     if(something === 'table')
       return clone(_table);
@@ -723,8 +741,6 @@ Object.defineProperty(window, 'Server', {
       return clone(_files);
     else if(something === 'states')
       return clone(_states);
-    else if(something === 'networks')
-      return clone(_netwk);
     else if(something === 'sep')
       return clone(sep);
 
@@ -860,6 +876,18 @@ Object.defineProperty(window, 'Server', {
   };
 
   /**
+    * Get or set home path
+    * @param {string} [p]
+    * @return {string}
+    */
+  this.home = function(p) {
+    if(typeof p === 'string')
+      _home = p;
+
+    return _home;
+  };
+
+  /**
     * Normalize a path
     * @param {string} p
     * @param {boolean} [cwd]
@@ -950,7 +978,7 @@ Object.defineProperty(window, 'Server', {
     if(!_netwk.hasOwnProperty(request.network))
       return 'Server is not connected to this network';
 
-    request = clone(request);
+    request = request;
     request.id = generateId();
 
     // If there is no catcher, this port is not opened
@@ -974,7 +1002,8 @@ Object.defineProperty(window, 'Server', {
     }
 
     // Display all requests on developper's console
-    console.log(request);
+    request.target = _ip;
+    console.log(clone(request));
     _events['incoming:' + request.port][names[0]](request, response);
 
     return ;
@@ -1059,6 +1088,20 @@ Object.defineProperty(window, 'Server', {
   this.generateId = function() { return generateId(); };
 
   /**
+    * Get server's IP
+    * @return {string}
+    */
+  this.ip = function() { return _ip; };
+
+  /**
+    * Generate a random IP adress
+    * @return {string}
+    */
+  this.generateIP = function() {
+    return Math.floor(Math.random() * 256) + '.' + Math.floor(Math.random() * 256) + '.' + Math.floor(Math.random() * 256) + '.' + Math.floor(Math.random() * 256);
+  };
+
+  /**
     * Generate a random string
     * @param {number} [length] String length. Default: 10
     * @return {string}
@@ -1078,12 +1121,29 @@ Object.defineProperty(window, 'Server', {
     * @return {string}
     */
   this.randomPassword = function(length) {
-    var p = '', allowedChars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_()[]{}°@/*++~';
+    var p = '', allowedChars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_()[]{}°@/*+~';
 
     for(var g = 0; g < (length || 30); g++)
       p += allowedChars.substr(Math.floor(Math.random() * allowedChars.length), 1);
 
     return p;
+  };
+
+  /**
+    * Obfuscate a password
+    * @param {string} pass
+    * @return {string}
+    */
+  this.obfuscate = function(pass) {
+    return pass
+      .replace(/a/g , '@')
+      .replace(/c/g , 'ç') // Do I have to remove it ? Does english keyboard have this special char ?
+      .replace(/e/g , '€') // Same thing here
+      .replace(/i/g , '|')
+      .replace(/o/g , '0')
+      .replace(/0/g , '°')
+      .replace(/\./g, ';')
+        ;
   };
 
   /**
@@ -1151,7 +1211,200 @@ Object.defineProperty(window, 'Server', {
     this.content = '';
   };
 
+  /**
+    * Initialize the server for first-time using
+    * @param {boolean} [dontCreateUsers]
+    */
+  this.install = function(dontCreateUsers) {
+    var sys, j, users;
+
+    if(!this.dirExists('/.sys')) {
+      console.warn('[' + (_ip || '@anonymous') + '] doesn\'t have a `.sys` folder. It will be created with arbitrary users and no network connection.');
+      this.mkdir('/.sys');
+      this.writeFile('/.sys/server.sys', {});
+    }
+
+    // Generate server informations
+    sys = this.readJSON('/.sys/server.sys');
+    sys.users = sys.users || {};
+    if(!dontCreateUsers) {
+      sys.users.system = {password: this.randomPassword(), token: TOKENS['system'], level:  'system' };
+      sys.users.guest  = {password: this.randomPassword(), token: TOKENS['guest' ], level: 'standard'};
+    }
+    sys.hacksecure   = sys.hacksecure || {};
+    sys.networks     = sys.networks   || {};
+    sys.hacksecure.inside  = sys.hacksecure.inside  || 0;
+    sys.hacksecure.outside = sys.hacksecure.outside || 0;
+
+    // Make users directories
+    users = Object.keys(sys.users);
+
+    this.mkdir('/users'); // Folder's existence is checked by Server class
+
+    for(j = 0; j < users.length; j++) {
+      this.mkdir('/users/' + users[j]);
+      this.mkdir('/users/' + users[j] + '/documents');
+      this.mkdir('/users/' + users[j] + '/downloads');
+      this.mkdir('/users/' + users[j] + '/.tmp');
+      this.mkdir('/users/' + users[j] + '/.appdata');
+      sys.users[users[j]].home = sys.users[users[j]].home || '/users/' + users[j];
+
+      if(typeof sys.users[users[j]].token === 'string')
+        sys.users[users[j]].token = clone(TOKENS[sys.users[users[j]].token]);
+    }
+
+    this.writeFile('/.sys/server.sys', sys);
+    this.hide('/.sys');
+
+    // Make default folders
+    this.mkdir('/apps');
+    this.hide('/apps');
+
+    this.mkdir('/env');
+
+    // This is a micro-script to test if the user can access to environment scripts
+    this.writeFile('/env/is-env.hss', 'echo Environment scripts are supported.');
+
+    // Update .sys/server.sys
+    this.update();
+  };
+
+  /**
+    * Update the server after modifying '.sys/server.sys' file
+    */
+  this.update = function() {
+    // Load server.sys file
+    sys = this.readJSON('/.sys/server.sys');
+
+    // Check validity
+    if(!sys)
+      throw new Error('Bad server.sys file !');
+
+    // Update networks support
+    _netwk = sys.networks;
+  };
+
+  /**
+    * Start the server and all applications
+    */
+  this.boot = function() {
+    // Do stuff here...
+  };
+
+  /**
+    * Check server.sys file has been loaded
+    */
+  function _sys() { if(!sys) throw new Error('Please load server.sys (Server.update()) before running any functions that requires its datas'); }
+
+  /**
+    * Check if a user account exist
+    * @param {string} name
+    * @return {boolean}
+    */
+  this.hasUser = function(name) {
+    _sys();
+    return sys.users.hasOwnProperty(name);
+  };
+
+  /**
+    * Get a user account
+    * @param {string} name
+    * @return {object}
+    */
+  this.user = function(name) {
+    _sys();
+    return clone(sys.users[name]);
+  };
+
+  /**
+    * Check if username AND password are valid
+    * @param {string} username
+    * @param {string} password
+    * @param {boolean} [auto_connect] If set to true, will update current server. Default: false
+    * @return {boolean}
+    */
+  this.login = function(username, password, auto_connect) {
+    var user = this.user(username);
+
+    if(!user || user.password !== password)
+      return false;
+
+    if(auto_connect) {
+      if(!_ip)
+        throw new Error('Server login auto-connect requires an IP adress');
+
+      log_ssh(_ip, username);
+    }
+
+    return true;
+  };
+
+  /**
+    * Check if server allows SSH connections
+    * @return {boolean}
+    */
+  this.allowSSH = function() {
+    _sys();
+    return (sys.ssh !== false);
+  };
+
+  /**
+    * Get hack securities
+    * @param {string} [cat]
+    * @param {boolean} [exploits] Default: false
+    * @return {object|array}
+    */
+  this.secure = function(cat, exploits) {
+    // return clone(cat ? sys.hacksecure[cat] : sys.hacksecure);
+    _sys();
+
+    if(!cat) {
+      if(!exploits)
+        return clone(sys.hacksecure);
+      else
+        return clone({outside: OUTSIDE_EXPLOITS.slice(0, sys.hacksecure.outside), inside: INSIDE_EXPLOITS.slice(0, sys.hacksecure.inside)});
+    } else {
+      if(!exploits)
+        return clone(sys.hacksecure[cat]);
+      else
+        return clone((cat === 'inside' ? INSIDE_EXPLOITS : OUTSIDE_EXPLOITS).slice(0, sys.hacksecure[cat]));
+    }
+  };
+
+  /**
+    * Get all users with rights level
+    * @param {string} level "standard" "admin" "system"
+    * @return {array}
+    */
+  this.usersByRight = function(level) {
+    _sys();
+
+    var out = [];
+
+    for(var i in sys.users)
+      if(sys.users[i].level === level)
+        out.push(i);
+
+    return out;
+  };
+
+  /**
+    * Check user level
+    * @param {string} user
+    * @param {string} mustBe
+    * @return {boolean}
+    */
+  this.checkUserLevel = function(user, mustBe) {
+    _sys();
+    return (sys.users[user] && sys.users[user].level === mustBe);
+  };
+
+  // TODO: Add API functions :
+  //     - boot() or startup()
+  //     - startApp()
+  //     - hasApp()
+  // Servers manage themselves their commands
+
   /* Freeze the server's instance */
   Object.freeze(this);
-
-}});
+};

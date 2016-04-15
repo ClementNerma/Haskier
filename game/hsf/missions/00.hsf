@@ -19,7 +19,7 @@ incoming("???");
 "C'est le chef qui m'envoie"
 "Vous avez réussi à hacker nos serveurs et me voilà donc"
 "J'ai trouvé le fichier que vous aviez laissé sur notre serveur principal"
-download('86.32.54.28', '/documents/hack.txt');
+download(ipalias['anonymas.master'], '/documents/hack.txt');
 sleep(5000)
 "Ai-je besoin d'ajouter quelque chose ?"
 "Très bien. Appellez-moi ${italic:K}"
@@ -45,7 +45,7 @@ todo('open-communication-port');
 incoming("K");
 "Voici l'épreuve"
 "Vous devez, à l'aide des outils dont vous disposez sur votre ordinateur, réussir à récupérer le code à ${bold:4 chiffres} qui se trouve sur notre serveur de test."
-"Son adresse IP est ${italic:127.2.5.36}. Il ne dispose d'aucune sécurité particulière, ce devrait être un vrai jeu d'enfant pour vous, n'est-ce pas ?"
+"Son adresse IP est ${italic:${ipalias['anonymas.test_1']}}. Il ne dispose d'aucune sécurité particulière, ce devrait être un vrai jeu d'enfant pour vous, n'est-ce pas ?"
 "Lorsque vous aurez trouvé, rouvrez le port communication et donnez-moi le code"
 "À tout de suite"
 incomingEnd();
@@ -73,7 +73,7 @@ else
 endif
 
 "Je vais maintenant vous soumettre à un deuxième test, pour voir si vous pouvez vraiment aller loin."
-"Vous allez pirater le serveur dont l'adresse IP est ${italic:127.32.48.53} et écrire ${italic:test réussi} dans le fichier ${italic:try.txt}"
+"Vous allez pirater le serveur dont l'adresse IP est ${italic:${ipalias['anonymas.test_2']}} et écrire ${italic:test réussi} dans le fichier ${italic:try.txt}"
 "Rouvrez le port communication une fois que ça sera fait."
 incomingEnd()
 todo('open-communication-port');
@@ -84,7 +84,7 @@ incoming("K");
 "Je me connecte au serveur..."
 sleep(3000)
 
-if(servers['127.32.48.53'].readFile('/users/guest/try.txt') is "test réussi")
+if(aliases['anonymas.test_2'].readFile('/users/guest/try.txt') is "test réussi")
   "Le fichier a bien été modifié"
 else
   "Le fichier n'est pas correct"

@@ -1,5 +1,6 @@
 {
     "description": "Serveur maître Anonymas",
+    "alias": "anonymas.master",
     "ssh": false,
     "networks": {
       "hypernet": {

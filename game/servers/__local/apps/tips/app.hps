@@ -29,6 +29,19 @@ var messages = [
        Si vous souhaitez uniquement consultez les 5 dernières entrées, par exemple, tapez <${cyan:history 5}>.\n\n \
        Vous pouvez également récupérer les dernières commandes que vous avez saisies en appuyant sur la touche ${bold:Flèche haut}.\n \
        Naviguez alors entre les entrées avec les touches ${bold:Flèche haut} et ${bold:Flèche bas}.'
+  },
+  {
+    title   : 'Raccourcis claviers',
+    content :
+      'Vous pouvez utiliser un certain nombre de raccourcis claviers pour aller plus vite. Voici une liste des différents raccourcis\n \
+       que vous pouvez utiliser :\n\n \
+       ${bold:Control + C :} Copier le texte sélectionné\n \
+       ${bold:Control + V :} Coller le texte sélectionné\n \
+       ${bold:Control + D :} Copier le texte sélectionné (ou à défaut le presse-papiers) dans le bloc-notes\n \
+       ${bold:Control + K :} Placer le curseur dans le bloc-notes\n \
+       ${bold:Ctrl+Maj+ D :} Coller le contenu du bloc-notes\n \
+       ${bold:Ctrl+Maj+ B :} Coller le texte sélectionné sans passer par le bloc-notes ou le presse-papiers\n\n \
+       Amusez-vous bien !'
   }
 ];
 

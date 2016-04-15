@@ -1,0 +1,311 @@
+: MISSION_02 => Première mission [checkpoint]
+
+incoming("Victor")
+"Bonjour bonjour !"
+"Ça va bien ?"
+
+choice("Très bien !", "Mouais...", "Ça pourrait aller mieux.")
+
+if(answer is 1)
+  "Tant mieux, tant mieux !"
+else if(answer is 2 || answer is 3)
+  "Ah bon ? Mince..."
+  "Enfin je ne suis pas là pour jouer les psy, alors reprenons."
+endif x2
+
+"Puisque tu ne connais pas trop l'organisation, je vais te mettre en relation avec un autre membre."
+"Notre but est d'infiltrer des réseaux d'entreprises et récupérer leurs données confidentielles pour ensuite les prévenir des failles que contiennent"
+"leurs systèmes. Vous allez donc infiltrer une petite entreprise qui contient des données assez sensibles."
+"Ils sont spécialisés dans la fabrication de cartes bancaires. Je te laisse imaginer les dégâts si quelqu'un parvenait à corrompre"
+"leurs modèles d'impression, par exemple, pour y implémenter un virus par exemple."
+"On sait qu'ils possèdent un serveur central qui n'est sans doute pas bien sécurisé. Plusieurs membres avaient déjà infiltré leur serveur il y a"
+"quelques mois, mais ils n'avaient pas écouté nos recommendations pour la sécurisation du serveur."
+"On va leur donner une bonne leçon. Tu es d'accord ?"
+
+choice("Parfaitement !", "Pas du tout");
+
+if(answer is 2)
+  "Que ça te plaise ou non, tu vas pas trop avoir le choix."
+  "Mais t'inquiètes pas, on garde pas les données après avoir piraté le serveur"
+  "Personne ne pourra s'en servir à mauvais escient."
+endif
+
+"C'est parti !"
+"${italic:Il} devrait te joindre d'ici quelques minutes"
+"A+"
+
+incomingEnd();
+wait_clock('+m 15');
+
+: 02 CONVERSATION
+incoming("???");
+"Salut !"
+"Désolé j'ai un peu de retard, il fallait que je finisse quelques trucs"
+choice("Enchanté ! Vous êtes... ?", "Qui êtes-vous ?")
+
+if(answer is 1)
+  "Ah ! Victor ne vous a même pas donné mon nom ?"
+  "Je m'appelle Paul, enchanté de faire ta connaissance !"
+else
+  "Je m'appelle Paul, Victor a dû vous parler de moi."
+endif
+
+human_talking = "Paul"
+
+"On va mener une petite mission pour... disons... rappeler à l'ordre une entreprise qui travaille dans la fabrication de cartes bancaires."
+"Pour la petite histoire, nous, enfin, l'organisation, les avions déjà contacté après avoir réussi à nous infiltrer sur leurs serveurs."
+"On avions insisté pour qu'ils sécurisent leurs serveurs car ils touchent à un domaine particulièrement sensible."
+"Mais ils avaient fait la sourde oreille et menacé de nous traîner devant le tribunal pour piratage informatique."
+"Donc les membres s'étaient retirés mais nous avons décidé de leur donner une nouvelle leçon."
+"As-tu des questions ?"
+
+choice("Pas spécialement...", "Ce n'est pas un peu risqué ?", "Tu tapes vachement vite !")
+
+if(answer is 1)
+  "Parfait !"
+else if(answer is 2)
+  "Non, il n'y a quasiment aucun risques. Et vu que c'est moi qui te fait faire cette mission, c'est moi qui te couvres en cas de problème."
+  "Donc tu n'as pas du tout à t'inquiéter :)"
+else
+  "Ah ah ! On me le fait souvent remarquer ! Mais la plupart des membres tapent aussi vite que moi."
+  "Mais où étais-je ? Ah oui !"
+endif x2
+
+"L'entreprise que nous allons infiltrer se nomme ${cyan:Bluebird}. Leur site web est ${underline:bluebird.com}."
+"Tu sais comment retrouver leur adresse IP ?"
+
+choice("Oui, bien sûr !", "Euh...")
+
+if(answer is 1)
+  "Dans ce cas, je te laisse te débrouiller !"
+else
+  "Il faut que tu utilises la commande ${cyan:iplink} pour ça. Si tu ne l'as pas sur ton PC, installe l'application ${bold:iplink}."
+
+  choice("OK", "Comment j'installe l'application ?")
+
+  if(answer is 2)
+    "Tu ne sais même pas comment installer une app ?"
+    "Bon, pour installer ${bold:iplink} par exemple, il faut utiliser la commande ${cyan:cpm} qui permet de gérer les applications :"
+    "${cyan:cpm} ${green:install} ${bold,f_green:iplink}"
+    "Compris ?"
+  else
+    "Parfait !"
+  endif
+endif
+
+"Recontacte-moi dès que tu auras trouvé leur IP, que je voie si tu n'es pas trop mauvais."
+"..."
+"Je plaisante."
+incomingEnd()
+
+: 02 FIND_IP
+/* Close the opened condition below */
+endif
+/* === */
+
+todo('open-communication-port')
+incoming("Paul")
+"Alors ?"
+"Tu as trouvé quoi comme adresse IP ?"
+question()
+
+if(answer isnt ipalias['bluebird.central'])
+  "Je crois que tu t'es gouré..."
+  "Réessaye."
+  incomingEnd()
+  repeat()
+endif
+
+"C'est bien ça."
+"Ce que tu as trouvé, c'est l'adresse IP du serveur central."
+"Dans une entreprise, même toute petite, il y a les serveurs des employés, et un unique serveur central."
+"Celui-ci est hyper protégé et n'est jamais connecté à Hypernet, donc c'est même pas la peine d'essayer de la hacker à distance."
+"En revanche, les PC des employés, eux, sont toujours connectés au réseau parce qu'ils en ont besoin pour leur boulot."
+"Il est très rare qu'un employé n'aie pas accès à Hypernet sur son PC."
+"Donc, pour dérober leurs données, on doit d'abord s'infiltrer sur le serveur employé, puis accéder au serveur central."
+"Cette étape-là, on la verra plus tard."
+"Ce qui nous intéresse, c'est le ${italic:IP liée 1}, c'est-à-dire l'adresse ${bold:${ipalias['bluebird.jonas']}}"
+"Connecte-toi au serveur de l'employé, je te rejoins de suite."
+incomingEnd()
+
+: 02 CONNECTION
+endif
+// Open the communication port, on the local server ONLY
+todo(['command', 'server.state(\'communication-opened\') === true && serverName === ipalias.local']);
+incoming("Paul")
+"Qu'est-ce qu'il y a ?"
+choice("Rien du tout", "Je n'arrive pas à me connecter au serveur")
+
+if(answer is 1)
+  "Dans ce cas, va sur le serveur. Je te rejoins dans 2 minutes."
+  incomingEnd()
+  goto("02 CONNECTION")
+endif
+
+"Comment ça, tu n'arrives pas à accéder au serveur ?"
+"Tu as juste à utiliser l'exploit de ${italic:base} de ME pour y obtenir un accès utilisateur !"
+
+choice("Ah, OK !", "ME ?")
+
+if(answer is 1)
+  goto("02 SERVER_HACK");
+endif
+
+"Tu ne sais pas ce qu'est ME ?"
+"J'ai l'impression que K ne t'a pas dit grand-chose sur l'organisation..."
+"Bon, c'est pas grave."
+"${italic:ME} est le logiciel de ${italic:pentesting} le plus utilisé au monde."
+"Le ${italic:pentesting} (penetration testing) consiste à s'infiltrer sur un PC pour tester sa sécurité."
+"Du coup, on peut aussi l'utiliser pour accéder directement aux serveurs cibles."
+"${italic:ME} est l'abréviation de ${italic:MeetExploit}. Tu peux la télécharger sur l'App Shop, comme ça :"
+"${f_cyan:cpm} ${green:install meetexploit}"
+"Et tu peux ensuite l'utiliser avec la commande ${cyan:metacl}."
+"Tu va avoir besoin d'un fichier de licence pour ça. Je vais te donner le lien pour y accéder : ${underline:anony.mas:53/me_lic.hss}"
+"Télécharges-le sur ta machine avec icefox (${cyan:icefox} ${green:anony.mas:53/me_lic.hss -d .}) puis lances-le en tapant ${cyan:me_lic})"
+"Tu ne passes ce lien à personne, compris ? Je compte sur toi."
+"Rouvre le port com' lorsque tu seras prêt."
+
+incomingEnd()
+
+: 02 INSTALL_ME
+endif
+todo('open-communication-port')
+incoming("Paul")
+"Alors, c'est bon ?"
+
+choice("Laisse-moi deux minutes...", "C'est bon !")
+
+if(answer is 1)
+  "Dépêches-toi !"
+  incomingEnd()
+  repeat()
+endif
+
+// MeetExploit "tutorial"
+"Maintenant que tu as installé MeetExploit, je vais te monter comment on l'utilises."
+"D'abord tu tapes ${cyan:metacl}. Tu vas avoir un écran comme ça :"
+exec('metacl'); term_exec('exit'); |;
+sleep(4000)
+" "
+"Tu vois le genre ?"
+"Tu vas pouvoir utiliser ici des ${italic:exploits}, c'est-à-dire exploiter des failles de sécurité sur des serveurs."
+"Pour l'instant, je vais te passer un exploit : ${italic:ac7-certificate-unverif}. Il s'agit d'une grosse faille qui a été très vite corrigée"
+"sur CenturyCode mais que nos amis de Bluebird ne se sont pas donné la peine de corriger, à mon humble avis. On va donc se servir de cette faille"
+"en premier recours. Si ça échoue, on pourra toujours essayer autre chose."
+"Bon, que je t'explique un peu comment ça fonctionne..."
+"Tu peux saisir des commandes dans MeetExploit comme tu le fais d'habitude. Mais là, ce ne sont pas les mêmes commands."
+"Rassures-toi, ce n'est pas bien compliqué."
+"Pour utiliser une exploit, il faut taper ${cyan:use} ${cyan:<nom>}."
+"Un exploit a besoin de variables. Pour savoir celles qui sont nécessaires, tu peux taper ${cyan:help} ${cyan:<nom>}."
+"Dans notre cas, il y a juste besoin d'une adresse IP"
+"On va donc définir la variable IP :"
+" ${cyan:set} ${f_green:global:}${green:IP} ${green:<adresse_IP>}"
+"Je met un ${bold:global:} car ça permet de dire que cette variable est globale. À chaque fois que tu changes d'exploit, la variable IP est la même."
+"Ensuite, on utilise la commande ${cyan:exploit} pour lancer le tout."
+"Une fois que tu auras fait ça, utilises l'exploit ${bold:ssh-hack} pour lancer le tout. Il a juste besoin d'une adresse IP, et comme elle est globale,"
+"pas besoin de la réécrire !"
+"Tu vois ce qu'il faut faire ?"
+
+choice("Tu peux expliquer un peu plus ?", "J'ai tout compris.");
+
+if(answer is 1)
+  "Sérieux ? Bon, je vais simplfier les choses. Tu va écrire dans la console :"
+  " ${cyan:set} ${f_green:global:IP} ${green:${ipalias['bluebird.jonas']}}"
+  "-> tu dis à ME de mettre la valeur ${bold:${ipalias['bluebird.jonas']}} dans la variable ${bold:IP}, et de la rendre globale,"
+  "   c'est-à-dire qu'elle ne changera pas quand tu voudras utiliser un autre exploit"
+  " "
+  " ${cyan:use} ${green:ac7-certificate-unverif}"
+  "-> tu dis à ME que tu va utiliser l'exploit nommé ${italic:ac7-certificate-unverif}"
+  " "
+  " ${cyan:exploit}"
+  "-> on lance l'exploit"
+  " "
+  " ${cyan:use} ${green:ssh-hack}"
+  "-> maintenant qu'on a tout fait sauter, on peut hacker le serveur"
+  "   pour ça, on utilises un exploit un peu spécial, ${bold:ssh-hack}"
+  " "
+  " ${cyan:set} ${green:SSH true}"
+  " "
+  "-> on se connecte au serveur via SSH AVANT de quitter le serveur"
+  " "
+  " ${cyan:exploit}"
+  "-> on lance l'exploit. Il faut une adresse IP, mais comme la variable est globale, pas besoin de la réécrire !"
+  " "
+  "J'espère que, maintenant, tu as compris !"
+endif
+
+"Allez, à tout de suite !"
+sleep(2000)
+"Oh ! J'allais oublier !"
+"Je ne t'ai pas donné les exploits !"
+"Lance ce petit script comme on l'a fait tout à l'heure : ${underline:anony.mas:53/dw-expl.hss}"
+choice("Je fais ça tout de suite.", "Comment qu'on fait, déjà ^^ ?")
+
+if(answer is 2)
+  "Il faut vraiment tout t'expliquer, à toi !"
+  "Réutilises ça :"
+  " ${cyan:icefox} ${green:anony.mas:53/dw-expl.hss -d .}"
+  " ${cyan:dw-expl}"
+  "Voilà, c'est tout ! C'est pas compliqué !"
+endif
+
+"Rappelles-moi quand tu seras sur le serveur ${bold:${ipalias['bluebird.jonas']}} !"
+incomingEnd()
+todo(['command', 'serverName === ipalias["bluebird.jonas"]']);
+
+: 02 SERVER_HACK
+incoming("Paul")
+"OK OK, j'ai réussi à me connecter moi aussi."
+"Bon, maintenant qu'on y est, on va pouvoir faire joujou avec la machine."
+"Il détient sans doute des données intéressantes à utiliser."
+"Aucune donnée sensible ne sera sans doute stockée sur ce PC. Il faut se connecter au serveur central."
+"Vu qu'il est certainement hyper-protégé, on va exploiter une faille du réseau."
+"Pour cela, utilise l'exploit ${italic:net-x07} de MeetExploit."
+"Il va nous permettre de faire sauter les sécurité réseau du PC."
+"Ensuite on utilisera ${italic:ctrx2} pour prendre le contrôle du serveur central !"
+"Et tu sais quoi ? Ces deux exploits n'ont pas besoin de variable !"
+"Autrement dit, tu peux simplement faire :"
+" "
+" ${cyan:use} ${green:net-x07}"
+" ${cyan:exploit}"
+" "
+"Et pareil pour l'autre !"
+"Tu vois c'est pas difficile (pour une fois ^^)"
+"Puisque c'est toi le nouveau, prend le contrôle du serveur central, je te rappelle dès que ça sera fait."
+incomingEnd()
+
+todo(['command', 'serverName === ipalias["bluebird.central"]']);
+
+: 02 HACKED
+incoming("Paul")
+"Bien, bien."
+"Maintenant qu'on est ici, que dirais-tu de laisser un petit message aux dirigeants ?"
+"Où va-t-on l'écrire ?"
+question("/users/recovery/documents/", true);
+"${scope.answer} ? OK, très bien."
+"Écris dans ce fichier un message, n'importe quoi."
+"Dès que ça sera fait, on se tire, OK ?"
+"À tout de suite !"
+incomingEnd()
+
+todo(['command', 'aliases["bluebird.central"].exists(scope.answer)']);
+
+: 02 EXIT
+human_talking = "Paul"
+"Allez, on se tire !"
+human_talking = null;
+
+todo(['command', 'serverName === ipalias.local']);
+
+: 02 WON
+// 'com open' is needed here. TODO: WHY ???
+incoming("Paul");
+"Pfiou ! On l'a fait !"
+"C'était pas bien dur, certes, mais on l'a quand même fait !"
+"Enfin... TU l'as fait ! Le chef va être content que cette mission se soit si bien passé."
+"Je veux dire, celui qui nous a confié la mission."
+"Ils vont deviner que c'est nous qui avons hacké leur serveur central."
+"Je paierais cher pour voir leur tête ^^ !"
+"Enfin bon..."
+"Je vais aller faire le rapport à Yves, le 'chef', justement. On t'enverra un mail à 8h pour le rencontrer. Salut !"
+incomingEnd()

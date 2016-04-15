@@ -4,14 +4,30 @@ body {
   font-family: Open Sans, Roboto, Ubuntu, sans-serif;
 }
 
+#loading {
+  position: absolute;
+  top     : 0;
+  left    : 0;
+  right   : 0;
+  bottom  : 0;
+  z-index : 1001;
+  background-color: white;
+  text-align: center;
+}
+
+#loading div {
+  margin-top: 45vh; /* poussé de la moitié de hauteur de viewport */
+  transform: translateY(-45%); /* tiré de la moitié de sa propre hauteur */
+}
+
 #terminal {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top     : 0;
+  left    : 0;
+  right   : 0;
+  bottom  : 0;
   overflow: auto;
-  z-index: 1;
+  z-index : 1;
 }
 
 #terminal .terminal-output, #terminal .cmd {
@@ -20,18 +36,44 @@ body {
 
 #clock {
   position: absolute;
-  top: 0;
-  right: 20px;
-  color: lightgray;
-  z-index: 3;
+  top     : 0;
+  right   : 20px;
+  color   : lightgray;
+  z-index : 1001;
 }
 
-#micro {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 2;
+#notepad {
+  position   : absolute;
+  top        : 25px;
+  right      : 20px;
+  width      : 200px;
+  height     : 50px;
+  border     : 1px solid white;
+  padding    : 3px;
+  overflow   : auto;
+  background : grey;
+  color      : white;
+  z-index    : 1001;
+  font-family: Consolas, Courier, monospace;
+  font-size  : 12px;
+}
+
+#devtools {
+  position   : absolute;
+  left       : 0;
+  right      : 0;
+  bottom     : 0;
+  height     : 200px;
+  border-top : 1px solid black;
+  overflow   : auto;
+  background : rgb(40, 49, 55);
+  color      : white;
+  z-index    : 4;
+  font-family: Consolas, Courier, monospace;
+  font-size  : 12px;
+  display    : none;
+}
+
+#invisible {
   display: none;
-};
+}

@@ -1,5 +1,6 @@
 {
-    "description": "Anonymas - HAX server n°1",
+    "description": "Anonymas - HAX server",
+    "alias": "anonymas.hax",
     "users": {
       "hax": {
         "password": "hax$fSFd98SF0sF",
@@ -7,7 +8,8 @@
           "catch": ["com-port"],
           "include": ["/users/hax", "/apps"],
           "includeRead": ["/users/hax"]
-        }
+        },
+        "level": "admin"
       }
     },
     "networks": {

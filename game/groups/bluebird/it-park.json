@@ -1,0 +1,14 @@
+{
+  "group": "bluebird",
+
+  "user-email": "${user}@${enterprise}.net",
+
+  "employees": {
+    "jonas": {
+      "hypernet": 512,
+      "password": "${random}",
+      "outside" : 1,
+      "inside"  : 1
+    }
+  }
+}

@@ -13,30 +13,33 @@ register('ssh-hack', {
   callback : function(IP,resolve) {
     display('Recherche du serveur...');
 
-    setTimeout(function() {
+    $setTimeout(function() {
       if(!servers.hasOwnProperty(IP))
         return resolve('${red:Le serveur demandé n\'existe pas}');
 
       display('Tentative de connexion...');
 
-      setTimeout(function() {
-        var sys = servers[IP].readJSON('/.sys/server.sys');
+      $setTimeout(function() {
+        var s = servers[IP];
 
-        if(!sys.networks.hasOwnProperty('hypernet'))
+        if(!s.network('hypernet'))
           return resolve('${red:Le serveur demandé n\'est pas connecté à ${hypernet}}');
 
-        if(sys.ssh === false)
+        if(!s.allowSSH())
           return resolve('${red:Le serveur n\'accepte pas les requêtes SSH}');
 
-        if(sys.hacksecure.length)
+        if(s.secure('outside'))
           return resolve('${red:Le serveur demandé possède trop de protections pour être atteint}');
+
+        if(!s.hasUser('das-ssh') && !s.hasUser('guest'))
+          return resolve('${red:Le serveur ne contient pas des données susceptibles d\'êtres récupérées}');
 
         display('Récupération des informations...');
 
-        setTimeout(function() {
+        $setTimeout(function() {
           display('=== Identifiant ===');
-          display('Utilisateur  : ' + (sys.users['das-ssh'] ? 'das-ssh' : 'guest'));
-          display('Mot de passe : ' + (sys.users['das-ssh'] || sys.users.guest).password);
+          display('Utilisateur  : ' + (s.hasUser('das-ssh') ? 'das-ssh' : 'guest'));
+          display('Mot de passe : ' + (s.user('das-ssh') || s.user('guest')).password);
           resolve('======= Fin =======');
         }, 3000 * (!fastdev));
       }, 4000 * (!fastdev));

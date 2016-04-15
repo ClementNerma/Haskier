@@ -1,7 +1,7 @@
 : MISSION_01 => Rencontre avec Victor [checkpoint]
 
 // Take care of the next variable on dialogs !
-victorMad = 0
+//victorMad = 0
 
 incoming("???")
 "Bonjour ${name} !"
@@ -10,11 +10,10 @@ incoming("???")
 
 choice("Qui êtes-vous ?")
 
-"Je m'appelle Victor, et je c'est moi qui vais vous présenter le fonctionnement de l'organisation."
+"Je m'appelle Victor, et c'est moi qui vais vous présenter le fonctionnement de l'organisation."
 human_talking = "Victor"
 
 choice("Très bien.", "Je croyais que je devais avoir une mission ?")
-
 
 if(answer is 2)
   "En fait, il semblerait que K se soit trompé sur la procédure"
@@ -44,7 +43,7 @@ else
     "C'est ce qui est marqué sur ma fiche..."
     "Donc je vais prendre ça comme argent comptant."
     "Enchanté, ${name}."
-    victorMad = 1
+    //victorMad = 1
   endif
 endif
 
@@ -136,14 +135,14 @@ incomingEnd()
 " "
 "${b_white,f_black: Aide } Vous pouvez vous connecter à votre adresse e-mail en utilisant la commande <${cyan:mail-cli}>"
 "${b_white,f_black: Aide } Votre adresse e-mail est : shaun.frena&#64;mailbox.net"
-"${b_white,f_black: Aide } Votre mot de passe   est : m@|lB0xM@st€P@ssw0rd"
+"${b_white,f_black: Aide } Votre mot de passe   est : m@|lB0xM@st€rP@ssw0rd"
 "${b_white,f_black: Aide } Vous devriez recevoir un mail d'ici les prochaines heures... Surveillez l'horloge (en haut à droite)"
 "${b_white,f_black: Aide } En attendant, vous pouvez utiliser la commande <${cyan:tips}> pour obtenir des astuces sur le jeu !"
 " "
 
 wait_clock('+h 3')
-send_mail(scope.mail, "victor.anno@imas.net", "Mission", "Re-bonjour,\nConnecte-toi au serveur ${bold:32.48.125.28}.\nLe nom d'utilisateur est ${bold:hax} et le mot de passe ${bold:hax$fSFd98SF0sF}\n\nÀ tout de suite !")
-todo(['command', 'serverName === "32.48.125.28" && serverUser === "hax"'])
+send_mail(scope.mail, "victor.anno@imas.net", "Mission", "Re-bonjour,\nConnecte-toi au serveur ${bold:${ipalias['anonymas.hax']}}.\nLe nom d'utilisateur est ${bold:hax} et le mot de passe ${bold:hax$fSFd98SF0sF}\n\nÀ tout de suite !")
+todo(['command', 'serverName === ipalias["anonymas.hax"] && serverUser === "hax"'])
 
 : 01 SERVER_CONNECTED
 todo('open-communication-port')
@@ -170,18 +169,18 @@ if(answer is 1)
   "Enfin bref."
 else
   "Comme tu veux."
-  victorMad = scope.victorMad + 1
+  //victorMad = scope.victorMad + 1
 endif
 
-"Si tu as déjà été testé, c'est pas la peine que le refasse."
+"Si tu as déjà été testé, c'est pas la peine que je le refasse."
 "Tiens, j'ai une idée !"
 "Puisque tu es si doué, je vais te donner un serveur pas facile du tout."
 "Si tu arrives à y accéder sans que je te donne le login ou le mot de passe, chapeau !"
-"Je te donne juste l'adresse IP : ${bold:148.25.136.98}. Tu dois lire le fichier ${bold:conf-ex}."
+"Je te donne juste l'adresse IP : ${bold:${ipalias['anonymas.das']}}. Tu dois lire le fichier ${bold:conf-ex}."
 // Connect to distant server...
-todo(['command', 'serverName === "148.25.136.98" && serverUser === "das-ssh"'])
+todo(['command', 'serverName === ipalias["anonymas.das"] && serverUser === "das-ssh"'])
 // ... and come back !
-todo(['command', 'serverName === "32.48.125.28" && serverUser === "hax"'])
+todo(['command', 'serverName === ipalias["anonymas.hax"] && serverUser === "hax"'])
 // Hello !
 "Alors ?"
 "Qu'est-ce que tu as trouvé ?"
@@ -200,7 +199,7 @@ else
     "Waouh ! Je suis vachement impressionné !"
   else
     "Ah, tu n'as pas bien dû le décoder..."
-  end
+  endif
 endif
 
 "Attends... Tu as bien pensé à effacer les logs, n'est-ce pas ?"
@@ -217,7 +216,6 @@ if(answer is 1)
   else
     "Alors retourne sur le serveur et efface les logs tout de suite !!"
     "Je t'attend"
-    have_to_erase = true
   endif
 else
   "Attends... Tu ne sais pas ce qu'est un log ?"
@@ -227,13 +225,13 @@ else
   "Si l'administrateur vérifie le log et se rend compte que tu t'es connecté, il peut remonter jusqu'à toi."
   "Sur ce serveur ça devait un fichier du style 'quelque chose.log'."
   "Retourne sur le serveur pour l'effacer si tu ne veut pas avoir de gros ennuis !"
-  have_to_erase = true
 endif
 
-"Bon, je te laisse là pour aujourd'hui. Je reprendrais contact avoir toi demain."
+"Bon, je te laisse là pour aujourd'hui. Je reprendrais contact avec toi demain vers minuit."
 "À plus !"
 incomingEnd()
+
 gs[01].checkLogErased();
 
 : 01 WAITING
-//time_at({days: clock.getDate() + 1);
+wait_at({days: clock.getDate() + 1, minutes: 27});

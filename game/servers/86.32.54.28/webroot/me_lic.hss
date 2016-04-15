@@ -1,0 +1,6 @@
+echo ${blue:Installation des données...}
+mkdir ~/.appdata/meet.exploits > nul
+echo ${blue:Récupération du fichier de licence...}
+icefox anony.mas:53/me.lic -d ~/.appdata/meet.exploits/license
+echo ${blue:Auto-destruction du programme}
+rm me_lic.hss

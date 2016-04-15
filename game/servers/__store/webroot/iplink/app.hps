@@ -1,0 +1,32 @@
+
+load_translation('tr/${lang}.json');
+
+register('iplink', {
+  legend   : tr('Find IP adress from a website URL'),
+  async    : true,
+  arguments: [
+    {
+      _       : 'url',
+      legend  : tr('Website URL'),
+      required: true
+    }
+  ],
+  callback : function(url, resolve) {
+    display(tr('Checking server\'s informations...'));
+
+    $setTimeout(function() {
+      url = parseUrl(url);
+
+      if(url.IP) {
+        display(tr('Master IP   : ${ip}', [url.IP]));
+
+        if(iplinks[url.IP])
+          for(var i = 0; i < iplinks[url.IP].length; i++)
+            display(tr('Linked IP ${i} : ${ip}', [i + 1, iplinks[url.IP][i]]));
+      } else
+        display_error(tr('No IP adress found (url not found)'));
+
+      resolve();
+    }, 1000);
+  }
+});

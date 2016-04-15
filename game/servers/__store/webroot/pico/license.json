@@ -1,0 +1,9 @@
+{
+    "name"   : "Pico",
+    "author" : "Canon",
+    "upload" : "31/03/2015",
+    "license": "CC-BY-NC-ND-4.0",
+    "version": "2.0",
+
+    "description": "The most simple way to edit a file"
+}

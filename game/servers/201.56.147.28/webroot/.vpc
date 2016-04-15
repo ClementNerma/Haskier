@@ -1,0 +1,9 @@
+# Protect 'private' folder
+ForbidAccess /private/(.*)
+
+HomeFile index.xms
+
+# Traditionnal XMS redirection rule
+RewriteRule / index.xms
+RewriteRule (.*)\.xms $&
+RewriteRule (.*) $1.xms

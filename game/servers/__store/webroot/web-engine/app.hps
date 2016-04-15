@@ -1,0 +1,188 @@
+
+exports('render', function(options) {
+  if(typeof options !== 'object' || !options || Array.isArray(options))
+    return "Bad rendering options";
+
+  if(!options.hasOwnProperty('content'))
+    return "Missing content to render";
+
+  if(typeof options.content !== 'string')
+    return "Only strings rendering is supported";
+
+  if(typeof options.callback !== 'function')
+    return "A callback is needed for rendering";
+
+  if(typeof options.url !== 'string')
+    return "Page URL is needed for rendering";
+
+  var content = options.content, resolve = options.callback;
+  term.set_prompt('');
+
+  // Treat commentaries
+  content = content.replace(/<\!\-\-((.|\n|\r|\r\n)*)\!\-\->/g, '');
+
+  // Treat scripts execution
+  content = content.replace(/<%\\((.|\n)*?)%>/g, function(match, script) {
+    if(!options.allowScripts)
+      return '<%%>';
+
+    var out = '';
+    (new Function(['echo', 'forceStyles'], script))(
+      function(text, nnl /* No New Line */) { out += '\n'.repeat(!(nnl) * 1); },
+      function() { options.allowStyles = true; });
+    return out.replace(/\n$/, '');
+  });
+
+  // Search for action(s)
+  var ACTION_CAPTURE = /\{\{ *([a-zA-Z0-9_]+) *, *"([^"]+)" *, *"([^"]+)" *\}\}/gm;
+  var is_action      = content.match(ACTION_CAPTURE);
+
+  // Content escaping
+  content = (options.allowStyles ? content : fescape(format(content, true))).replace(/<%%>/g, '${yellow:=== Script removed ===}');
+
+  if(!is_action) {
+    term.clear();
+    display(content);
+    resolve(null, {do: 'quit'}); // null = no error
+
+    return ;
+  }
+
+  // Parse URL
+  var splitten = options.url.split('/');
+  var domain   = splitten[0];
+  var folder   = splitten.slice(1, splitten.length - 1).join('/');
+  // Here, there is (at least) one input field
+  ignoreKeys  = false;
+  dontResolve = true ;
+  // Unescape action tags
+  content     = content.replace(/&#123;&#123;(.*?)&#125;&#125;/mg, '{{$1}}');
+  var fields  = {}, displaying, actions = [], details = {}, focused;
+
+  // Search all actions
+  content.replace(ACTION_CAPTURE, function(match, action, name, legend) {
+    /*if(action === 'input')
+      fields[name] = null;*/
+
+    actions.push(name);
+    details[name] = {
+      legend: legend,
+      action: action
+    };
+  });
+
+  term.set_prompt('');
+  ignoreKeys  = false;
+
+  function focusAction(actionName) {
+    if(typeof actionName === 'undefined')
+      actionName = focused;
+    else {
+      if(typeof actionName === 'number')
+        actionName = actions[actionName];
+
+      focused = actions.indexOf(actionName);
+    }
+
+    term.clear();
+    display(displaying = content
+      .replace(ACTION_CAPTURE, function(match, action, name, legend) {
+        if(name === actions[focused])
+          return '${b_yellow,f_black:' + (fields[name] ? fescape(fields[name]) : legend) + '}';
+        else
+          return (fields[name] ? fescape(fields[name]) : legend);
+      }));
+  }
+
+  function selectAction() {
+    keydownCallback = function(e) {
+      switch(e.keyCode) {
+        // Up arrow
+        case keys.up:
+          if(e.ctrlKey)
+            focused = 0;
+          else if(focused)
+            focused--;
+          else
+            focused = actions.length - 1;
+
+          focusAction();
+          break;
+
+        // Left arrow
+        case keys.left:
+          focused = 0;
+          focusAction();
+          break;
+
+        // Right arrow
+        case keys.right:
+          focused = actions.length - 1;
+          focusAction();
+          break;
+
+        // Down arrow
+        case keys.down:
+          if(e.ctrlKey)
+            focused = actions.length - 1;
+          else if(focused < actions.length - 1)
+            focused++;
+          else
+            focused = 0;
+
+          focusAction();
+          break;
+
+        // Escape
+        case keys.esc:
+          term.clear();
+          focusAction(-1); // No focus, nothing will be highlighted
+          resolve(null, {do: 'quit', escaped: true});
+          return ;
+          break;
+
+        // Enter
+        case keys.enter:
+          var action = details[actions[focused]], wtd = action.action;
+
+          if(wtd === 'link') {
+            var target = actions[focused];
+            target     = (target.substr(0, 1) === '//' ? target.substr(2) : (target.substr(0, 1) === '/' ? domain + target : domain + '/' + folder + '/' + target));
+            term.clear();
+            focusAction(-1);
+            resolve(null, {do: 'redirect', target: target});
+          } else if(wtd === 'input') {
+            term.set_prompt('> ');
+            term.set_command(fields[actions[focused]] || '');
+
+            catchCommand = function(v) {
+              term.set_prompt('');
+              fields[actions[focused]] = v;
+              focusAction();
+              selectAction();
+              return true;
+            };
+          } else if(wtd === 'submit') {
+            var target = actions[focused];
+            target     = (target.substr(0, 1) === '//' ? target.substr(2) : (target.substr(0, 1) === '/' ? domain + target : domain + '/' + folder + '/' + target));
+            focusAction(-1); // No focus, nothing will be highlighted
+            resolve(null, {do: 'redirect', target: target, data: fields});
+          } else
+            resolve('Bad action "' + wtd + '"');
+
+          // Because of we return no value here, keydownCallback() will be automatically erased
+          return ;
+          break;
+
+        // Unknown key
+        default:
+          break;
+      }
+
+      return RESTORE_KEYDOWN_CALLBACK;
+    };
+  }
+
+  focusAction(actions[0]);
+  selectAction();
+});
