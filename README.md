@@ -1,3 +1,4 @@
+## Ceci est la deuxième version d'Haskier, qui à l'instar de la v1 est désormais abandonnée. La v2 ne sera plus mise à jour, et les bugs ne seront pas corrigés.
 
 # Haskier
 
